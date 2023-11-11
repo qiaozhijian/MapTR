@@ -1,7 +1,8 @@
 /*.sh
 change_submit.py
 cluster_submit.yaml
-
+.idea
+ckpts
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
