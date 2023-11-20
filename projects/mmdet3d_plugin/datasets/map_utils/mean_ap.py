@@ -76,7 +76,7 @@ def get_cls_results(gen_results,
         tuple[list[np.ndarray]]: detected bboxes, gt bboxes
     """
     # if len(gen_results) == 0 or 
-
+    assert annotations['sample_token'] == gen_results['sample_token']
     cls_gens, cls_scores = [], []
     for res in gen_results['vectors']:
         if res['type'] == class_id:

@@ -1402,7 +1402,7 @@ class CustomNuScenesOfflineLocalMapDataset(CustomNuScenesDataset):
         gt_annos = []
         print('Start to convert gt map format...')
         assert self.map_ann_file is not None
-        if (not os.path.exists(self.map_ann_file)) :
+        if (not os.path.exists(self.map_ann_file)) or True:
             dataset_length = len(self)
             prog_bar = mmcv.ProgressBar(dataset_length)
             mapped_class_names = self.MAPCLASSES
@@ -1473,7 +1473,7 @@ class CustomNuScenesOfflineLocalMapDataset(CustomNuScenesDataset):
             pred_anno['vectors'] = pred_vec_list
             pred_annos.append(pred_anno)
 
-        if not os.path.exists(self.map_ann_file):
+        if not os.path.exists(self.map_ann_file) or True:
             self._format_gt()
         else:
             print(f'{self.map_ann_file} exist, not update')

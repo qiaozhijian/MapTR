@@ -23,6 +23,9 @@ def gen_dx_bx(xbound, ybound, zbound):
     )
     return dx, bx, nx
 
+def torch_inverse_cpu(x):
+    x_inv = torch.inverse(x.to("cpu")).to("cuda:0")
+    return x_inv
 
 @TRANSFORMER_LAYER_SEQUENCE.register_module()
 class BaseTransform(BaseModule):
@@ -112,7 +115,7 @@ class BaseTransform(BaseModule):
         # B x N x D x H x W x 3
         points = self.frustum - post_trans.view(B, N, 1, 1, 1, 3)
         points = (
-            torch.inverse(post_rots)
+            torch_inverse_cpu(post_rots)
             .view(B, N, 1, 1, 1, 3, 3)
             .matmul(points.unsqueeze(-1))
         )
@@ -124,13 +127,13 @@ class BaseTransform(BaseModule):
             ),
             5,
         )
-        combine = rots.matmul(torch.inverse(intrins))
+        combine = rots.matmul(torch_inverse_cpu(intrins))
         points = combine.view(B, N, 1, 1, 1, 3, 3).matmul(points).squeeze(-1)
         points += trans.view(B, N, 1, 1, 1, 3)
         # ego_to_lidar
         points -= lidar2ego_trans.view(B, 1, 1, 1, 1, 3)
         points = (
-            torch.inverse(lidar2ego_rots)
+            torch_inverse_cpu(lidar2ego_rots)
             .view(B, 1, 1, 1, 1, 3, 3)
             .matmul(points.unsqueeze(-1))
             .squeeze(-1)
@@ -169,7 +172,7 @@ class BaseTransform(BaseModule):
         points = self.frustum.view(1,1,self.D, fH, fW, 3) \
                  .repeat(B,N,1,1,1,1)
         lidar2img = lidar2img.view(B,N,1,1,1,4,4)
-        # img2lidar = torch.inverse(lidar2img)
+        # img2lidar = torch_inverse_cpu(lidar2img)
         points = torch.cat(
             (points, torch.ones_like(points[..., :1])), -1)
         points = torch.linalg.solve(lidar2img.to(torch.float32), 
@@ -397,19 +400,19 @@ class BaseTransformV2(BaseModule):
         # post-transformation
         # B x N x D x H x W x 3
         points = self.frustum.to(sensor2ego) - post_trans.view(B, N, 1, 1, 1, 3)
-        points = torch.inverse(post_rots).view(B, N, 1, 1, 1, 3, 3)\
+        points = torch_inverse_cpu(post_rots).view(B, N, 1, 1, 1, 3, 3)\
             .matmul(points.unsqueeze(-1))
 
         # cam_to_ego
         points = torch.cat(
             (points[..., :2, :] * points[..., 2:3, :], points[..., 2:3, :]), 5)
-        combine = rots.matmul(torch.inverse(intrins))
+        combine = rots.matmul(torch_inverse_cpu(intrins))
         points = combine.view(B, N, 1, 1, 1, 3, 3).matmul(points).squeeze(-1)
         points += trans.view(B, N, 1, 1, 1, 3)
         # ego_to_lidar
         points -= lidar2ego_trans.view(B, 1, 1, 1, 1, 3)
         points = (
-            torch.inverse(lidar2ego_rots)
+            torch_inverse_cpu(lidar2ego_rots)
             .view(B, 1, 1, 1, 1, 3, 3)
             .matmul(points.unsqueeze(-1))
             .squeeze(-1)
@@ -442,7 +445,7 @@ class BaseTransformV2(BaseModule):
         # B x N x D x H x W x 3
         points = self.frustum.to(device)- post_trans.view(B, N, 1, 1, 1, 3)
         points = (
-            torch.inverse(post_rots)
+            torch_inverse_cpu(post_rots)
             .view(B, N, 1, 1, 1, 3, 3)
             .matmul(points.unsqueeze(-1))
         )
@@ -454,13 +457,13 @@ class BaseTransformV2(BaseModule):
             ),
             5,
         )
-        combine = rots.matmul(torch.inverse(intrins))
+        combine = rots.matmul(torch_inverse_cpu(intrins))
         points = combine.view(B, N, 1, 1, 1, 3, 3).matmul(points).squeeze(-1)
         points += trans.view(B, N, 1, 1, 1, 3)
         # ego_to_lidar
         points -= lidar2ego_trans.view(B, 1, 1, 1, 1, 3)
         points = (
-            torch.inverse(lidar2ego_rots)
+            torch_inverse_cpu(lidar2ego_rots)
             .view(B, 1, 1, 1, 1, 3, 3)
             .matmul(points.unsqueeze(-1))
             .squeeze(-1)
@@ -498,7 +501,7 @@ class BaseTransformV2(BaseModule):
         points = self.frustum.view(1,1,self.D, fH, fW, 3) \
                  .repeat(B,N,1,1,1,1)
         lidar2img = lidar2img.view(B,N,1,1,1,4,4)
-        # img2lidar = torch.inverse(lidar2img)
+        # img2lidar = torch_inverse_cpu(lidar2img)
         points = torch.cat(
             (points, torch.ones_like(points[..., :1])), -1)
         points = torch.linalg.solve(lidar2img.to(torch.float32), 
