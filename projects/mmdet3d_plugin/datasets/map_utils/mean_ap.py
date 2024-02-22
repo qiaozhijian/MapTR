@@ -297,6 +297,7 @@ def eval_map(gen_results,
         cls_gen = np.vstack(cls_gen)
         num_dets = cls_gen.shape[0]
         sort_inds = np.argsort(-cls_gen[:, -1]) #descending, high score front
+        # 相对于用不同score得到不同的tp和fp
         tp = np.hstack(tp)[sort_inds]
         fp = np.hstack(fp)[sort_inds]
         

@@ -4,7 +4,9 @@ from shapely.geometry import LineString, Polygon
 from shapely.strtree import STRtree
 from shapely.geometry import CAP_STYLE, JOIN_STYLE
 from scipy.spatial import distance
-
+import warnings
+from shapely.errors import ShapelyDeprecationWarning
+warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning)
 
 def custom_polyline_score(pred_lines, gt_lines, linewidth=1., metric='chamfer'):
     '''
