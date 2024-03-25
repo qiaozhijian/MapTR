@@ -24,6 +24,7 @@ def gen_dx_bx(xbound, ybound, zbound):
     return dx, bx, nx
 
 def torch_inverse_cpu(x):
+    # x_inv = torch.inverse(x)
     x_inv = torch.inverse(x.to("cpu")).to("cuda:0")
     return x_inv
 

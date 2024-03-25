@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-CONFIG=./projects/configs/maptrv2/maptrv2_nusc_r50_24ep.py
+CONFIG=./projects/configs/maptrv2/maptrv2_nusc_r50_24ep_qzj.py
 CHECKPOINT=./ckpts/maptrv2_nusc_r50_24e.pth
 GPUS=1
 PORT=${PORT:-29503}

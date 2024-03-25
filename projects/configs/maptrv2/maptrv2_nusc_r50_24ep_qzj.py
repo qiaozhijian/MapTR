@@ -249,7 +249,7 @@ test_pipeline = [
 ]
 
 data = dict(
-    samples_per_gpu=4,
+    samples_per_gpu=2,
     workers_per_gpu=4, # TODO
     train=dict(
         type=dataset_type,
@@ -286,7 +286,7 @@ data = dict(
     test=dict(
         type=dataset_type,
         data_root=data_root,
-        ann_file=data_root + 'nuscenes_map_infos_temporal_val.pkl',
+        ann_file=data_root + 'nuscenes_map_infos_temporal_trainval.pkl',
         map_ann_file=data_root + 'nuscenes_map_anns_val.json',
         pipeline=test_pipeline, 
         bev_size=(bev_h_, bev_w_),

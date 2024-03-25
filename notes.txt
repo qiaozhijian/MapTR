@@ -1,9 +1,0 @@
-sudo fuser -v /dev/nvidia0 | awk '{for(i=1;i<=NF;i++)print $i;}' | xargs -I {} ps -p {} -o pid,comm | grep python | awk '{print "kill -9 " $1}' | sudo sh
-
-In the project/configs/maptrv2/maptrv2_nusc_r50_24ep.py, test.anno_file is changed to nuscenes_map_infos_temporal_trainval.pkl.
-
-If you want to reduce the dataset size, change mmdetection3d/mmdet3d/datasets/custom_3d.py to use a subset of the dataset. self.data_infos = self.data_infos[:10]
-
-Evaluation results are saved in the test/ folder. nuscmap_results is the vector results. cls_formatted is inference and gt. Every polyline is resampled to 100 points, plus the score.
-
-Evaluation: chamfer distance is used to determine whether the prediction is correct. The chamfer distance is calculated between the predicted polyline and the ground truth polyline by a predefined threshold. 用不同score得到不同的tp和fp.
