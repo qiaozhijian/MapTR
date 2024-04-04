@@ -179,9 +179,9 @@ model = dict(
             loss_weight=2.0),
         loss_bbox=dict(type='L1Loss', loss_weight=0.0),
         loss_iou=dict(type='GIoULoss', loss_weight=0.0),
-        loss_pts=dict(type='PtsL1Loss', 
+        loss_pts=dict(type='PtsCDTWLoss',
                       loss_weight=5.0),
-        loss_dir=dict(type='PtsDirCosLoss', loss_weight=0.005),
+        loss_dir=dict(type='PtsDirCosLoss', loss_weight=0.0),
         loss_seg=dict(type='SimpleLoss', 
             pos_weight=4.0,
             loss_weight=1.0),
@@ -249,7 +249,7 @@ test_pipeline = [
 ]
 
 data = dict(
-    samples_per_gpu=2,
+    samples_per_gpu=1,
     workers_per_gpu=4, # TODO
     train=dict(
         type=dataset_type,

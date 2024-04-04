@@ -1049,7 +1049,6 @@ class CustomNuScenesOfflineLocalMapDataset(CustomNuScenesDataset):
                  **kwargs):
         super().__init__(*args, **kwargs)
         self.map_ann_file = map_ann_file
-
         self.queue_length = queue_length
         self.overlap_test = overlap_test
         self.bev_size = bev_size

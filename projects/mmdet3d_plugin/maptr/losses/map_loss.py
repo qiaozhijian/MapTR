@@ -1,4 +1,5 @@
 # Copyright (c) OpenMMLab. All rights reserved.
+import numpy as np
 import torch
 from torch import nn as nn
 from torch.nn.functional import l1_loss, mse_loss, smooth_l1_loss
@@ -225,6 +226,57 @@ def pts_l1_loss(pred, target):
     loss = torch.abs(pred - target)
     return loss
 
+import cdtw_python as pycdtw
+
+def avoid_same_pts(pts):
+    n, d = pts.shape
+    for i in range(n-1):
+        if np.array_equal(pts[i, :], pts[i+1, :]):
+            pts[i+1, :] = pts[i, :] + 1e-3 * np.random.rand(d)
+    return pts
+
+@mmcv.jit(derivate=True, coderize=True)
+@weighted_loss
+def pts_cdtw_loss(pred, target):
+    """L1 loss.
+
+    Args:
+        pred (torch.Tensor): shape [num_samples, num_pts, num_coords]
+        target (torch.Tensor): shape [num_samples, num_pts, num_coords]
+
+    Returns:
+        torch.Tensor: Calculated loss
+    """
+    if target.numel() == 0:
+        return pred.sum() * 0
+    assert pred.size() == target.size()
+    pred_cpu = pred.detach().cpu().numpy()
+    target_cpu = target.detach().cpu().numpy()
+    targets_cdtw = []
+    for i in range(pred_cpu.shape[0]):
+        curve_a = np.concatenate([pred_cpu[i], np.zeros((pred_cpu[i].shape[0], 1))], axis=1)
+        curve_b = np.concatenate([target_cpu[i], np.zeros((target_cpu[i].shape[0], 1))], axis=1)
+        curve_a = avoid_same_pts(curve_a)
+        curve_b = avoid_same_pts(curve_b)
+        cdtw = pycdtw.ContinuousDTW(curve_a, curve_b, 0.2)
+        cdtw_matching = cdtw.compute_matching()
+        matching_infos = cdtw.get_matching_info()
+        target_cdtw = np.zeros(curve_a.shape)
+        for j in range(curve_a.shape[0]):
+            if j == 0:
+                target_cdtw[j, :] = cdtw_matching[j][0]
+            elif j == target_cdtw.shape[0] - 1:
+                target_cdtw[j, :] = cdtw_matching[j][-1]
+            elif len(cdtw_matching[j]) == 1:
+                target_cdtw[j, :] = cdtw_matching[j][0]
+            else:
+                # find the closest point
+                target_cdtw[j, :] = cdtw_matching[j][np.argmin(np.linalg.norm(curve_a[j] - cdtw_matching[j], axis=1))]
+        targets_cdtw.append(target_cdtw[:, :2])
+    targets_cdtw = torch.from_numpy(np.array(targets_cdtw)).to(pred.device)
+    loss = torch.abs(pred - targets_cdtw)
+    return loss
+
 @mmcv.jit(derivate=True, coderize=True)
 @custom_weighted_loss
 def ordered_pts_l1_loss(pred, target):
@@ -349,6 +401,48 @@ class PtsDirCosLoss(nn.Module):
         return loss_dir
 
 
+import cdtw_python
+@LOSSES.register_module()
+class PtsCDTWLoss(nn.Module):
+    """L1 loss.
+
+    Args:
+        reduction (str, optional): The method to reduce the loss.
+            Options are "none", "mean" and "sum".
+        loss_weight (float, optional): The weight of loss.
+    """
+
+    def __init__(self, reduction='mean', loss_weight=1.0):
+        super(PtsCDTWLoss, self).__init__()
+        self.reduction = reduction
+        self.loss_weight = loss_weight
+
+    def forward(self,
+                pred,
+                target,
+                weight=None,
+                avg_factor=None,
+                reduction_override=None):
+        """Forward function.
+
+        Args:
+            pred (torch.Tensor): The prediction.
+            target (torch.Tensor): The learning target of the prediction.
+            weight (torch.Tensor, optional): The weight of loss for each
+                prediction. Defaults to None.
+            avg_factor (int, optional): Average factor that is used to average
+                the loss. Defaults to None.
+            reduction_override (str, optional): The reduction method used to
+                override the original reduction method of the loss.
+                Defaults to None.
+        """
+        assert reduction_override in (None, 'none', 'mean', 'sum')
+        reduction = (
+            reduction_override if reduction_override else self.reduction)
+        # import pdb;pdb.set_trace()
+        loss_bbox = self.loss_weight * pts_cdtw_loss(
+            pred, target, weight, reduction=reduction, avg_factor=avg_factor)
+        return loss_bbox
 
 @LOSSES.register_module()
 class PtsL1Loss(nn.Module):

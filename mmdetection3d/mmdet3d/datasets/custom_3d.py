@@ -63,7 +63,7 @@ class Custom3DDataset(Dataset):
         self.cat2id = {name: i for i, name in enumerate(self.CLASSES)}
         self.data_infos = self.load_annotations(self.ann_file)
         # qzj
-        self.data_infos = self.data_infos[:10]
+        # self.data_infos = self.data_infos[:10]
 
         if pipeline is not None:
             self.pipeline = Compose(pipeline)

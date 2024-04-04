@@ -29,5 +29,3 @@ lyft_dataset_sdk
 # pip install networkx==2.3
 # bash tools/data_prepare.sh
 # pip install av2 && pip install numpy==1.23.5
-
-# pip install av2, but then pip install numpy==1.23.5

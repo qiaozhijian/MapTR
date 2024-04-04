@@ -7,3 +7,8 @@
 ```angular2html
 sudo fuser -v /dev/nvidia0 | awk '{for(i=1;i<=NF;i++)print $i;}' | xargs -I {} ps -p {} -o pid,comm | grep python | awk '{print "kill -9 " $1}' | sudo sh
 ```
++ maptr 单卡训练
+  + https://github.com/hustvl/MapTR/issues/65
+  + https://github.com/hustvl/MapTR/issues/69
+  + https://github.com/hustvl/MapTR/issues/48
+  + https://github.com/hustvl/MapTR/issues/101
