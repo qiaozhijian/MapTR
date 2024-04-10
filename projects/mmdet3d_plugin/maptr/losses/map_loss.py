@@ -235,47 +235,83 @@ def avoid_same_pts(pts):
             pts[i+1, :] = pts[i, :] + 1e-3 * np.random.rand(d)
     return pts
 
-@mmcv.jit(derivate=True, coderize=True)
-@weighted_loss
-def pts_cdtw_loss(pred, target):
-    """L1 loss.
+# @mmcv.jit(derivate=True, coderize=True)
+# @weighted_loss
+# def pts_cdtw_loss(pred, target):
+#     """L1 loss.
+#
+#     Args:
+#         pred (torch.Tensor): shape [num_samples, num_pts, num_coords]
+#         target (torch.Tensor): shape [num_samples, num_pts, num_coords]
+#
+#     Returns:
+#         torch.Tensor: Calculated loss
+#     """
+#     if target.numel() == 0:
+#         return pred.sum() * 0
+#     assert pred.size() == target.size()
+#     pred_cpu = pred.detach().cpu().numpy()
+#     target_cpu = target.detach().cpu().numpy()
+#     targets_cdtw = []
+#     for i in range(pred_cpu.shape[0]):
+#         curve_a = np.concatenate([pred_cpu[i], np.zeros((pred_cpu[i].shape[0], 1))], axis=1)
+#         curve_b = np.concatenate([target_cpu[i], np.zeros((target_cpu[i].shape[0], 1))], axis=1)
+#         curve_a = avoid_same_pts(curve_a)
+#         curve_b = avoid_same_pts(curve_b)
+#         cdtw = pycdtw.ContinuousDTW(curve_a, curve_b, 0.2)
+#         cdtw_matching = cdtw.compute_matching()
+#         matching_infos = cdtw.get_matching_info()
+#         target_cdtw = np.zeros(curve_a.shape)
+#         for j in range(curve_a.shape[0]):
+#             if j == 0:
+#                 target_cdtw[j, :] = cdtw_matching[j][0]
+#             elif j == target_cdtw.shape[0] - 1:
+#                 target_cdtw[j, :] = cdtw_matching[j][-1]
+#             elif len(cdtw_matching[j]) == 1:
+#                 target_cdtw[j, :] = cdtw_matching[j][0]
+#             else:
+#                 # find the closest point
+#                 target_cdtw[j, :] = cdtw_matching[j][np.argmin(np.linalg.norm(curve_a[j] - cdtw_matching[j], axis=1))]
+#         targets_cdtw.append(target_cdtw[:, :2])
+#     targets_cdtw = torch.from_numpy(np.array(targets_cdtw)).to(pred.device)
+#     loss = torch.abs(pred - targets_cdtw)
+#     return loss
 
-    Args:
-        pred (torch.Tensor): shape [num_samples, num_pts, num_coords]
-        target (torch.Tensor): shape [num_samples, num_pts, num_coords]
+from concurrent.futures import ThreadPoolExecutor
 
-    Returns:
-        torch.Tensor: Calculated loss
-    """
-    if target.numel() == 0:
-        return pred.sum() * 0
-    assert pred.size() == target.size()
-    pred_cpu = pred.detach().cpu().numpy()
-    target_cpu = target.detach().cpu().numpy()
-    targets_cdtw = []
-    for i in range(pred_cpu.shape[0]):
-        curve_a = np.concatenate([pred_cpu[i], np.zeros((pred_cpu[i].shape[0], 1))], axis=1)
-        curve_b = np.concatenate([target_cpu[i], np.zeros((target_cpu[i].shape[0], 1))], axis=1)
-        curve_a = avoid_same_pts(curve_a)
-        curve_b = avoid_same_pts(curve_b)
-        cdtw = pycdtw.ContinuousDTW(curve_a, curve_b, 0.2)
-        cdtw_matching = cdtw.compute_matching()
-        matching_infos = cdtw.get_matching_info()
-        target_cdtw = np.zeros(curve_a.shape)
-        for j in range(curve_a.shape[0]):
-            if j == 0:
-                target_cdtw[j, :] = cdtw_matching[j][0]
-            elif j == target_cdtw.shape[0] - 1:
-                target_cdtw[j, :] = cdtw_matching[j][-1]
-            elif len(cdtw_matching[j]) == 1:
-                target_cdtw[j, :] = cdtw_matching[j][0]
-            else:
-                # find the closest point
-                target_cdtw[j, :] = cdtw_matching[j][np.argmin(np.linalg.norm(curve_a[j] - cdtw_matching[j], axis=1))]
-        targets_cdtw.append(target_cdtw[:, :2])
-    targets_cdtw = torch.from_numpy(np.array(targets_cdtw)).to(pred.device)
-    loss = torch.abs(pred - targets_cdtw)
-    return loss
+# @mmcv.jit(derivate=True, coderize=True)
+# @weighted_loss
+# def pts_cdtw_loss(pred, target):
+#     if target.numel() == 0:
+#         return pred.sum() * 0
+#     assert pred.size() == target.size()
+#
+#     pred_cpu = pred.detach().cpu().numpy()
+#     target_cpu = target.detach().cpu().numpy()
+#
+#     def compute_target_cdtw(pred_sample, target_sample):
+#         curve_a = np.concatenate([pred_sample, np.zeros((pred_sample.shape[0], 1))], axis=1)
+#         curve_b = np.concatenate([target_sample, np.zeros((target_sample.shape[0], 1))], axis=1)
+#         curve_a = avoid_same_pts(curve_a)
+#         curve_b = avoid_same_pts(curve_b)
+#         cdtw = pycdtw.ContinuousDTW(curve_a, curve_b, 0.5)
+#         cdtw_matching = cdtw.compute_matching()
+#         target_cdtw = np.zeros(curve_a.shape)
+#         for j in range(curve_a.shape[0]):
+#             matching_points = cdtw_matching[j]
+#             if len(matching_points) == 1:
+#                 target_cdtw[j, :] = matching_points[0]
+#             else:
+#                 target_cdtw[j, :] = matching_points[np.argmin(np.linalg.norm(curve_a[j] - matching_points, axis=1))]
+#         return target_cdtw[:, :2]
+#
+#     # Use ThreadPoolExecutor to parallelize the computation
+#     with ThreadPoolExecutor() as executor:
+#         results = executor.map(compute_target_cdtw, pred_cpu, target_cpu)
+#
+#     targets_cdtw = torch.from_numpy(np.array(list(results))).to(pred.device)
+#     loss = torch.abs(pred - targets_cdtw)
+#     return loss
 
 @mmcv.jit(derivate=True, coderize=True)
 @custom_weighted_loss
@@ -400,8 +436,26 @@ class PtsDirCosLoss(nn.Module):
             pred, target, weight, reduction=reduction, avg_factor=avg_factor)
         return loss_dir
 
+def interpolate_tensors(pred, new_num_pts):
+    # Since we are interpolating along the second dimension (num_pts),
+    # we reshape the tensors to have that dimension as the last dimension
+    pred = pred.transpose(1, 2)  # Shape: [num_samples, num_coords, num_pts]
+    # Use the interpolate function to resize the tensors
+    pred_interp = F.interpolate(pred, size=new_num_pts, mode='linear', align_corners=True)
+    # Reshape the tensors back to the original shape format
+    pred_interp = pred_interp.transpose(2, 1)  # Shape: [num_samples, new_num_pts, num_coords]
+    return pred_interp
 
-import cdtw_python
+def interpolate_weight(weight, new_num_pts):
+    # Since we are interpolating along the second dimension (num_pts),
+    # we reshape the tensors to have that dimension as the last dimension
+    weight = weight.transpose(1, 2)  # Shape: [num_samples, num_coords, num_pts]
+    # Use the interpolate function to resize the tensors
+    weight_interp = F.interpolate(weight, size=new_num_pts, mode='nearest')
+    # Reshape the tensors back to the original shape format
+    weight_interp = weight_interp.transpose(2, 1)  # Shape: [num_samples, new_num_pts, num_coords]
+    return weight_interp
+
 @LOSSES.register_module()
 class PtsCDTWLoss(nn.Module):
     """L1 loss.
@@ -440,8 +494,14 @@ class PtsCDTWLoss(nn.Module):
         reduction = (
             reduction_override if reduction_override else self.reduction)
         # import pdb;pdb.set_trace()
-        loss_bbox = self.loss_weight * pts_cdtw_loss(
+        # from time import perf_counter
+        # t1 = perf_counter()
+        pred = interpolate_tensors(pred, 100)
+        target = interpolate_tensors(target, 100)
+        weight = interpolate_weight(weight, 100)
+        loss_bbox = self.loss_weight * pts_l1_loss(
             pred, target, weight, reduction=reduction, avg_factor=avg_factor)
+        # print("shape: {}, cdtw time: {} ms".format(pred.shape, (perf_counter()-t1)*1000))
         return loss_bbox
 
 @LOSSES.register_module()
