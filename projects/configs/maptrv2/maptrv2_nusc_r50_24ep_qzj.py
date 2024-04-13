@@ -206,7 +206,7 @@ model = dict(
             pc_range=point_cloud_range))))
 
 dataset_type = 'CustomNuScenesOfflineLocalMapDataset'
-data_root = 'data/nuscenes/'
+data_root = '/home/qzj/datasets/nuscenes/'
 file_client_args = dict(backend='disk')
 
 

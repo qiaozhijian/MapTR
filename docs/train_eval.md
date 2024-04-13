@@ -25,7 +25,7 @@ Eval MapTR with 1 GPUs
 ```
 
 
-
+--nproc_per_node=1 --master_port=29503 /home/qzj/code/MapTR/tools/test.py ./projects/configs/maptrv2/maptrv2_nusc_r50_24ep_qzj.py ./ckpts/maptrv2_nusc_r50_24e.pth --launcher pytorch --eval chamfer
 
 # Visualization 
 
