@@ -786,6 +786,26 @@ def extract_local_ped_crossing(avm, ego_SE3_city, patch_box, patch_angle,patch_s
 
             results.append(np.array(lines.coords))
     return results
+
+# collecting samples...
+# num cpu: 20
+# using 64 threads
+# 108972 available samples, 159 samples discarded
+# collected in 777.4615144729614s
+# saving results to /home/qzj/datasets/argoverse2/sensor/av2_map_infos_train.pkl
+# collecting samples...
+# num cpu: 20
+# using 64 threads
+# 23522 available samples, 25 samples discarded
+# collected in 159.53563737869263s
+# saving results to /home/qzj/datasets/argoverse2/sensor/av2_map_infos_val.pkl
+# collecting samples...
+# num cpu: 20
+# using 64 threads
+# 23542 available samples, 32 samples discarded
+# collected in 162.96644020080566s
+# saving results to /home/qzj/datasets/argoverse2/sensor/av2_map_infos_test.pkl
+
 if __name__ == '__main__':
     args = parse_args()
     for name in ['train', 'val', 'test']:

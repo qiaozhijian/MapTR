@@ -226,7 +226,7 @@ def pts_l1_loss(pred, target):
     loss = torch.abs(pred - target)
     return loss
 
-import cdtw_python as pycdtw
+# import cdtw_python as pycdtw
 
 def avoid_same_pts(pts):
     n, d = pts.shape

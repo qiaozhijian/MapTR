@@ -21,7 +21,8 @@ Eval MapTR with 8 GPUs
 
 Eval MapTR with 1 GPUs
 ```
-./tools/dist_test_map.sh ./projects/configs/maptrv2/maptrv2_nusc_r50_24ep.py ./ckpts/maptrv2_nusc_r50_24e.pth 1
+./tools/dist_test_map.sh ./projects/configs/maptrv2/maptrv2_nusc_r50_24ep_qzj.py ./ckpts/maptrv2_nusc_r50_24e.pth 1
+./tools/dist_test_map.sh ./projects/configs/maptrv2/maptrv2_av2_3d_r50_6ep_qzj.py ./ckpts/maptrv2_av2_3d_r50_6ep.pth 1
 ```
 
 
