@@ -25,9 +25,8 @@ from shapely.geometry import Polygon, MultiPolygon, LineString, Point, box, Mult
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 import networkx as nx
+
 sys.path.append('.')
-
-
 
 
 class CNuScenesMapExplorer(NuScenesMapExplorer):
@@ -35,10 +34,10 @@ class CNuScenesMapExplorer(NuScenesMapExplorer):
         super(self, CNuScenesMapExplorer).__init__(*args, **kwargs)
 
     def _get_centerline(self,
-                           patch_box: Tuple[float, float, float, float],
-                           patch_angle: float,
-                           layer_name: str,
-                           return_token: bool = False) -> dict:
+                        patch_box: Tuple[float, float, float, float],
+                        patch_angle: float,
+                        layer_name: str,
+                        return_token: bool = False) -> dict:
         """
          Retrieve the centerline of a particular layer within the specified patch.
          :param patch_box: Patch box defined as [x_center, y_center, height, width].
@@ -46,7 +45,7 @@ class CNuScenesMapExplorer(NuScenesMapExplorer):
          :param layer_name: name of map layer to be extracted.
          :return: dict(token:record_dict, token:record_dict,...)
          """
-        if layer_name not in ['lane','lane_connector']:
+        if layer_name not in ['lane', 'lane_connector']:
             raise ValueError('{} is not a centerline layer'.format(layer_name))
 
         patch_x = patch_box[0]
@@ -79,19 +78,19 @@ class CNuScenesMapExplorer(NuScenesMapExplorer):
 
                 if not new_polygon.is_empty:
                     centerline = self.map_api.discretize_lanes(
-                            record, 0.5)
+                        record, 0.5)
                     centerline = list(self.map_api.discretize_lanes([record['token']], 0.5).values())[0]
-                    centerline = LineString(np.array(centerline)[:,:2].round(3))
+                    centerline = LineString(np.array(centerline)[:, :2].round(3))
                     if centerline.is_empty:
                         continue
                     centerline = centerline.intersection(patch)
                     if not centerline.is_empty:
                         centerline = \
                             to_patch_coord(centerline, patch_angle, patch_x, patch_y)
-                        
+
                         # centerline.coords = np.array(centerline.coords).round(3)
                         # if centerline.geom_type != 'LineString':
-                            # import ipdb;ipdb.set_trace()
+                        # import ipdb;ipdb.set_trace()
                         record_dict = dict(
                             centerline=centerline,
                             token=record['token'],
@@ -101,13 +100,13 @@ class CNuScenesMapExplorer(NuScenesMapExplorer):
                         centerline_dict.update({record['token']: record_dict})
         return centerline_dict
 
+
 def to_patch_coord(new_polygon, patch_angle, patch_x, patch_y):
     new_polygon = affinity.rotate(new_polygon, -patch_angle,
                                   origin=(patch_x, patch_y), use_radians=False)
     new_polygon = affinity.affine_transform(new_polygon,
                                             [1.0, 0.0, 0.0, 1.0, -patch_x, -patch_y])
     return new_polygon
-
 
 
 def get_available_scenes(nusc):
@@ -149,6 +148,7 @@ def get_available_scenes(nusc):
         available_scenes.append(scene)
     print('exist scene num: {}'.format(len(available_scenes)))
     return available_scenes
+
 
 def _get_can_bus_info(nusc, nusc_can_bus, sample):
     scene_name = nusc.get('scene', sample['scene_token'])['name']
@@ -227,9 +227,9 @@ def obtain_sensor2top(nusc,
     l2e_r_s_mat = Quaternion(l2e_r_s).rotation_matrix
     e2g_r_s_mat = Quaternion(e2g_r_s).rotation_matrix
     R = (l2e_r_s_mat.T @ e2g_r_s_mat.T) @ (
-        np.linalg.inv(e2g_r_mat).T @ np.linalg.inv(l2e_r_mat).T)
+            np.linalg.inv(e2g_r_mat).T @ np.linalg.inv(l2e_r_mat).T)
     T = (l2e_t_s @ e2g_r_s_mat.T + e2g_t_s) @ (
-        np.linalg.inv(e2g_r_mat).T @ np.linalg.inv(l2e_r_mat).T)
+            np.linalg.inv(e2g_r_mat).T @ np.linalg.inv(l2e_r_mat).T)
     T -= e2g_t @ (np.linalg.inv(e2g_r_mat).T @ np.linalg.inv(l2e_r_mat).T
                   ) + l2e_t @ np.linalg.inv(l2e_r_mat).T
     sweep['sensor2lidar_rotation'] = R.T  # points @ R.T + T
@@ -237,15 +237,131 @@ def obtain_sensor2top(nusc,
     return sweep
 
 
+def _fill_trainval_infos2(nusc,
+                          nusc_can_bus,
+                          nusc_maps,
+                          map_explorer,
+                          train_scenes,
+                          val_scenes,
+                          test=False,
+                          max_sweeps=10,
+                          point_cloud_range=[-15.0, -30.0, -10.0, 15.0, 30.0, 10.0]):
+    sensors = ["LIDAR_TOP", "CAM_FRONT", "CAM_FRONT_LEFT", "CAM_FRONT_RIGHT", "CAM_BACK", "CAM_BACK_LEFT",
+               "CAM_BACK_RIGHT"]
+    all_frames = []
+    frequency = 10
+    duration = 1 / frequency * 1e6
+    for scene_data in mmcv.track_iter_progress(nusc.scene):
+        scene_token = scene_data['token']
+        first_sample_token = scene_data['first_sample_token']
+        first_sample = nusc.get('sample', first_sample_token)
+
+        # collect timestamps
+        data = {}
+        for sensor in sensors:
+            data[sensor] = []
+            sample_token = first_sample["data"][sensor]
+            while sample_token != "":
+                sample_data = nusc.get("sample_data", sample_token)
+                data[sensor].append([sample_data["timestamp"], sample_token])
+                sample_token = sample_data["next"]
+
+        # collect sensor tokens for whose timestamps are closest to each other within  50000
+        sensor_tokens = []
+        last_time = 0
+        for lidar_time in data["LIDAR_TOP"]:
+            time_diff = 50000
+            frame = {"LIDAR_TOP": lidar_time[1], "timestamp": lidar_time[0], "scene_token": scene_token}
+            for sensor, times in data.items():
+                if sensor == "LIDAR_TOP":
+                    continue
+                for time in times:
+                    if abs(lidar_time[0] - time[0]) < time_diff:
+                        frame[sensor] = time[1]
+                        break
+            if len(frame) - 2 == len(sensors) and lidar_time[0] - last_time > duration:
+                sensor_tokens.append(frame)
+                last_time = lidar_time[0]
+
+        all_frames.extend(sensor_tokens)
+
+    train_nusc_infos = []
+    val_nusc_infos = []
+    for sample in mmcv.track_iter_progress(all_frames):
+        scene_token = sample['scene_token']
+        lidar_token = sample['LIDAR_TOP']
+
+        map_location = nusc.get('log', nusc.get('scene', scene_token)['log_token'])['location']
+
+        sd_rec = nusc.get('sample_data', lidar_token)
+        cs_record = nusc.get('calibrated_sensor', sd_rec['calibrated_sensor_token'])
+        pose_record = nusc.get('ego_pose', sd_rec['ego_pose_token'])
+        lidar_path, boxes, _ = nusc.get_sample_data(lidar_token)
+
+        mmcv.check_file_exist(lidar_path)
+        can_bus = _get_can_bus_info(nusc, nusc_can_bus, sample)
+        ##
+        info = {
+            'lidar_path': lidar_path,
+            'token': None,
+            'prev': None,
+            'next': None,
+            'can_bus': can_bus,
+            'frame_idx': None,  # temporal related info
+            'sweeps': [],
+            'cams': dict(),
+            'map_location': map_location,
+            'scene_token': scene_token,  # temporal related info
+            'lidar2ego_translation': cs_record['translation'],
+            'lidar2ego_rotation': cs_record['rotation'],
+            'ego2global_translation': pose_record['translation'],
+            'ego2global_rotation': pose_record['rotation'],
+            'timestamp': sample['timestamp'],
+        }
+
+        l2e_r = info['lidar2ego_rotation']
+        l2e_t = info['lidar2ego_translation']
+        e2g_r = info['ego2global_rotation']
+        e2g_t = info['ego2global_translation']
+        l2e_r_mat = Quaternion(l2e_r).rotation_matrix
+        e2g_r_mat = Quaternion(e2g_r).rotation_matrix
+
+        # obtain 6 image's information per frame
+        camera_types = [
+            'CAM_FRONT',
+            'CAM_FRONT_RIGHT',
+            'CAM_FRONT_LEFT',
+            'CAM_BACK',
+            'CAM_BACK_LEFT',
+            'CAM_BACK_RIGHT',
+        ]
+        for cam in camera_types:
+            cam_token = sample[cam]
+            cam_path, _, cam_intrinsic = nusc.get_sample_data(cam_token)
+            cam_info = obtain_sensor2top(nusc, cam_token, l2e_t, l2e_r_mat,
+                                         e2g_t, e2g_r_mat, cam)
+            cam_info.update(cam_intrinsic=cam_intrinsic)
+            info['cams'].update({cam: cam_info})
+
+        info = obtain_vectormap(nusc_maps, map_explorer, info, point_cloud_range)
+
+        if scene_token in train_scenes:
+            train_nusc_infos.append(info)
+        else:
+            val_nusc_infos.append(info)
+
+    return train_nusc_infos, val_nusc_infos
+
+
 def _fill_trainval_infos(nusc,
                          nusc_can_bus,
-                         nusc_maps, 
+                         nusc_maps,
                          map_explorer,
                          train_scenes,
                          val_scenes,
                          test=False,
                          max_sweeps=10,
-                         point_cloud_range=[-15.0, -30.0,-10.0, 15.0, 30.0, 10.0]):
+                         point_cloud_range=[-15.0, -30.0, -10.0, 15.0, 30.0, 10.0]):
     """Generate the train/val infos from the raw data.
 
     Args:
@@ -346,28 +462,29 @@ def _fill_trainval_infos(nusc,
 
     return train_nusc_infos, val_nusc_infos
 
+
 def obtain_vectormap(nusc_maps, map_explorer, info, point_cloud_range):
     # import ipdb;ipdb.set_trace()
     lidar2ego = np.eye(4)
-    lidar2ego[:3,:3] = Quaternion(info['lidar2ego_rotation']).rotation_matrix
+    lidar2ego[:3, :3] = Quaternion(info['lidar2ego_rotation']).rotation_matrix
     lidar2ego[:3, 3] = info['lidar2ego_translation']
     ego2global = np.eye(4)
-    ego2global[:3,:3] = Quaternion(info['ego2global_rotation']).rotation_matrix
+    ego2global[:3, :3] = Quaternion(info['ego2global_rotation']).rotation_matrix
     ego2global[:3, 3] = info['ego2global_translation']
 
     lidar2global = ego2global @ lidar2ego
 
-    lidar2global_translation = list(lidar2global[:3,3])
+    lidar2global_translation = list(lidar2global[:3, 3])
     lidar2global_rotation = list(Quaternion(matrix=lidar2global).q)
 
     location = info['map_location']
     ego2global_translation = info['ego2global_translation']
     ego2global_rotation = info['ego2global_rotation']
 
-    patch_h = point_cloud_range[4]-point_cloud_range[1]
-    patch_w = point_cloud_range[3]-point_cloud_range[0]
+    patch_h = point_cloud_range[4] - point_cloud_range[1]
+    patch_w = point_cloud_range[3] - point_cloud_range[0]
     patch_size = (patch_h, patch_w)
-    vector_map = VectorizedLocalMap(nusc_maps[location], map_explorer[location],patch_size)
+    vector_map = VectorizedLocalMap(nusc_maps[location], map_explorer[location], patch_size)
     map_anns = vector_map.gen_vectorized_samples(lidar2global_translation, lidar2global_rotation)
     # import ipdb;ipdb.set_trace()
     info["annotation"] = map_anns
@@ -382,15 +499,16 @@ class VectorizedLocalMap(object):
         'contours': 2,
         'others': -1
     }
+
     def __init__(self,
                  nusc_map,
                  map_explorer,
                  patch_size,
-                 map_classes=['divider','ped_crossing','boundary','centerline'],
+                 map_classes=['divider', 'ped_crossing', 'boundary', 'centerline'],
                  line_classes=['road_divider', 'lane_divider'],
                  ped_crossing_classes=['ped_crossing'],
                  contour_classes=['road_segment', 'lane'],
-                 centerline_classes=['lane_connector','lane'],
+                 centerline_classes=['lane_connector', 'lane'],
                  use_simplify=True,
                  ):
         super().__init__()
@@ -403,23 +521,22 @@ class VectorizedLocalMap(object):
         self.centerline_classes = centerline_classes
         self.patch_size = patch_size
 
-
     def gen_vectorized_samples(self, lidar2global_translation, lidar2global_rotation):
         '''
         use lidar2global to get gt map layers
         '''
-        
+
         map_pose = lidar2global_translation[:2]
         rotation = Quaternion(lidar2global_rotation)
         # import ipdb;ipdb.set_trace()
         patch_box = (map_pose[0], map_pose[1], self.patch_size[0], self.patch_size[1])
         patch_angle = quaternion_yaw(rotation) / np.pi * 180
-        map_dict = {'divider':[],'ped_crossing':[],'boundary':[],'centerline':[]}
+        map_dict = {'divider': [], 'ped_crossing': [], 'boundary': [], 'centerline': []}
         vectors = []
         for vec_class in self.vec_classes:
             if vec_class == 'divider':
                 line_geom = self.get_map_geom(patch_box, patch_angle, self.line_classes)
-                line_instances_dict = self.line_geoms_to_instances(line_geom)     
+                line_instances_dict = self.line_geoms_to_instances(line_geom)
                 for line_type, instances in line_instances_dict.items():
                     for instance in instances:
                         map_dict[vec_class].append(np.array(instance.coords))
@@ -437,7 +554,7 @@ class VectorizedLocalMap(object):
                     # import ipdb;ipdb.set_trace()
                     map_dict[vec_class].append(np.array(instance.coords))
                     # vectors.append((contour, self.CLASS2LABEL.get('contours', -1)))
-            elif vec_class =='centerline':
+            elif vec_class == 'centerline':
                 centerline_geom = self.get_centerline_geom(patch_box, patch_angle, self.centerline_classes)
                 centerline_list = self.centerline_geoms_to_instances(centerline_geom)
                 for instance in centerline_list:
@@ -446,18 +563,20 @@ class VectorizedLocalMap(object):
                 raise ValueError(f'WRONG vec_class: {vec_class}')
         # import ipdb;ipdb.set_trace()
         return map_dict
+
     def get_centerline_geom(self, patch_box, patch_angle, layer_names):
         map_geom = {}
         for layer_name in layer_names:
             if layer_name in self.centerline_classes:
                 return_token = False
                 layer_centerline_dict = self.map_explorer._get_centerline(
-                patch_box, patch_angle, layer_name, return_token=return_token)
+                    patch_box, patch_angle, layer_name, return_token=return_token)
                 if len(layer_centerline_dict.keys()) == 0:
                     continue
                 # import ipdb;ipdb.set_trace()
                 map_geom.update(layer_centerline_dict)
         return map_geom
+
     def get_map_geom(self, patch_box, patch_angle, layer_names):
         map_geom = {}
         for layer_name in layer_names:
@@ -475,7 +594,7 @@ class VectorizedLocalMap(object):
                 map_geom[layer_name] = geoms
         return map_geom
 
-    def get_divider_line(self,patch_box,patch_angle,layer_name):
+    def get_divider_line(self, patch_box, patch_angle, layer_name):
         if layer_name not in self.map_explorer.map_api.non_geometric_line_layers:
             raise ValueError("{} is not a line layer".format(layer_name))
 
@@ -503,7 +622,7 @@ class VectorizedLocalMap(object):
 
         return line_list
 
-    def get_contour_line(self,patch_box,patch_angle,layer_name):
+    def get_contour_line(self, patch_box, patch_angle, layer_name):
         if layer_name not in self.map_explorer.map_api.non_geometric_polygon_layers:
             raise ValueError('{} is not a polygonal layer'.format(layer_name))
 
@@ -517,7 +636,8 @@ class VectorizedLocalMap(object):
         polygon_list = []
         if layer_name == 'drivable_area':
             for record in records:
-                polygons = [self.map_explorer.map_api.extract_polygon(polygon_token) for polygon_token in record['polygon_tokens']]
+                polygons = [self.map_explorer.map_api.extract_polygon(polygon_token) for polygon_token in
+                            record['polygon_tokens']]
 
                 for polygon in polygons:
                     new_polygon = polygon.intersection(patch)
@@ -547,7 +667,6 @@ class VectorizedLocalMap(object):
 
         return polygon_list
 
-
     def get_ped_crossing_line(self, patch_box, patch_angle):
         patch_x = patch_box[0]
         patch_y = patch_box[1]
@@ -562,7 +681,7 @@ class VectorizedLocalMap(object):
                 new_polygon = polygon.intersection(patch)
                 if not new_polygon.is_empty:
                     new_polygon = affinity.rotate(new_polygon, -patch_angle,
-                                                      origin=(patch_x, patch_y), use_radians=False)
+                                                  origin=(patch_x, patch_y), use_radians=False)
                     new_polygon = affinity.affine_transform(new_polygon,
                                                             [1.0, 0.0, 0.0, 1.0, -patch_x, -patch_y])
                     if new_polygon.geom_type == 'Polygon':
@@ -581,7 +700,7 @@ class VectorizedLocalMap(object):
 
     def _one_type_line_geom_to_instances(self, line_geom):
         line_instances = []
-        
+
         for line in line_geom:
             if not line.is_empty:
                 if line.geom_type == 'MultiLineString':
@@ -629,7 +748,6 @@ class VectorizedLocalMap(object):
 
         return self._one_type_line_geom_to_instances(results)
 
-
     def poly_geoms_to_instances(self, polygon_geom):
         roads = polygon_geom['road_segment']
         lanes = polygon_geom['lane']
@@ -668,12 +786,11 @@ class VectorizedLocalMap(object):
 
         return self._one_type_line_geom_to_instances(results)
 
-    def centerline_geoms_to_instances(self,geoms_dict):
-        centerline_geoms_list,pts_G = self.union_centerline(geoms_dict)
+    def centerline_geoms_to_instances(self, geoms_dict):
+        centerline_geoms_list, pts_G = self.union_centerline(geoms_dict)
         # vectors_dict = self.centerline_geoms2vec(centerline_geoms_list)
         # import ipdb;ipdb.set_trace()
         return self._one_type_line_geom_to_instances(centerline_geoms_list)
-
 
     def centerline_geoms2vec(self, centerline_geoms_list):
         vector_dict = {}
@@ -697,13 +814,13 @@ class VectorizedLocalMap(object):
                 for single_geom in centerline_geom.geoms:
                     single_geom_pts = np.array(single_geom.coords).round(3)
                     for idx, pt in enumerate(single_geom_pts[:-1]):
-                        pts_G.add_edge(tuple(single_geom_pts[idx]),tuple(single_geom_pts[idx+1]))
+                        pts_G.add_edge(tuple(single_geom_pts[idx]), tuple(single_geom_pts[idx + 1]))
             elif centerline_geom.geom_type == 'LineString':
                 centerline_pts = np.array(centerline_geom.coords).round(3)
                 start_pt = centerline_pts[0]
                 end_pt = centerline_pts[-1]
                 for idx, pts in enumerate(centerline_pts[:-1]):
-                    pts_G.add_edge(tuple(centerline_pts[idx]),tuple(centerline_pts[idx+1]))
+                    pts_G.add_edge(tuple(centerline_pts[idx]), tuple(centerline_pts[idx + 1]))
             else:
                 raise NotImplementedError
             valid_incoming_num = 0
@@ -713,14 +830,14 @@ class VectorizedLocalMap(object):
                     pred_geom = centerline_geoms[pred]['centerline']
                     if pred_geom.geom_type == 'MultiLineString':
                         pred_pt = np.array(pred_geom.geoms[-1].coords).round(3)[-1]
-        #                 if pred_pt != centerline_pts[0]:
+                        #                 if pred_pt != centerline_pts[0]:
                         pts_G.add_edge(tuple(pred_pt), tuple(start_pt))
                     else:
                         pred_pt = np.array(pred_geom.coords).round(3)[-1]
                         pts_G.add_edge(tuple(pred_pt), tuple(start_pt))
             if valid_incoming_num > 1:
                 junction_pts_list.append(tuple(start_pt))
-            
+
             valid_outgoing_num = 0
             for idx, succ in enumerate(value['outgoing_tokens']):
                 if succ in centerline_geoms.keys():
@@ -728,7 +845,7 @@ class VectorizedLocalMap(object):
                     succ_geom = centerline_geoms[succ]['centerline']
                     if succ_geom.geom_type == 'MultiLineString':
                         succ_pt = np.array(succ_geom.geoms[0].coords).round(3)[0]
-        #                 if pred_pt != centerline_pts[0]:
+                        #                 if pred_pt != centerline_pts[0]:
                         pts_G.add_edge(tuple(end_pt), tuple(succ_pt))
                     else:
                         succ_pt = np.array(succ_geom.coords).round(3)[0]
@@ -749,8 +866,6 @@ class VectorizedLocalMap(object):
             merged_line = merged_line.simplify(0.2, preserve_topology=True)
             final_centerline_paths.append(merged_line)
         return final_centerline_paths, pts_G
-
-
 
 
 def create_nuscenes_infos(root_path,
@@ -777,13 +892,12 @@ def create_nuscenes_infos(root_path,
     nusc = NuScenes(version=version, dataroot=root_path, verbose=True)
     nusc_can_bus = NuScenesCanBus(dataroot=can_bus_root_path)
     MAPS = ['boston-seaport', 'singapore-hollandvillage',
-                     'singapore-onenorth', 'singapore-queenstown']
+            'singapore-onenorth', 'singapore-queenstown']
     nusc_maps = {}
     map_explorer = {}
     for loc in MAPS:
         nusc_maps[loc] = NuScenesMap(dataroot=root_path, map_name=loc)
         map_explorer[loc] = CNuScenesMapExplorer(nusc_maps[loc])
-
 
     from nuscenes.utils import splits
     available_vers = ['v1.0-trainval', 'v1.0-test', 'v1.0-mini']
@@ -822,7 +936,7 @@ def create_nuscenes_infos(root_path,
         print('train scene: {}, val scene: {}'.format(
             len(train_scenes), len(val_scenes)))
 
-    train_nusc_infos, val_nusc_infos = _fill_trainval_infos(
+    train_nusc_infos, val_nusc_infos = _fill_trainval_infos2(
         nusc, nusc_can_bus, nusc_maps, map_explorer, train_scenes, val_scenes, test, max_sweeps=max_sweeps)
 
     metadata = dict(version=version)
@@ -843,7 +957,6 @@ def create_nuscenes_infos(root_path,
         info_val_path = osp.join(out_path,
                                  '{}_map_infos_temporal_val.pkl'.format(info_prefix))
         mmcv.dump(data, info_val_path)
-
 
 
 def nuscenes_data_prep(root_path,
@@ -879,13 +992,12 @@ def nuscenes_data_prep(root_path,
     #         out_dir, f'{info_prefix}_infos_temporal_train.pkl')
     #     info_val_path = osp.join(
     #         out_dir, f'{info_prefix}_infos_temporal_val.pkl')
-        # nuscenes_converter.export_2d_annotation(
-        #     root_path, info_train_path, version=version)
-        # nuscenes_converter.export_2d_annotation(
-        #     root_path, info_val_path, version=version)
-        # create_groundtruth_database(dataset_name, root_path, info_prefix,
-        #                             f'{out_dir}/{info_prefix}_infos_train.pkl')
-
+    # nuscenes_converter.export_2d_annotation(
+    #     root_path, info_train_path, version=version)
+    # nuscenes_converter.export_2d_annotation(
+    #     root_path, info_val_path, version=version)
+    # create_groundtruth_database(dataset_name, root_path, info_prefix,
+    #                             f'{out_dir}/{info_prefix}_infos_train.pkl')
 
 
 parser = argparse.ArgumentParser(description='Data converter arg parser')
@@ -922,7 +1034,6 @@ parser.add_argument(
     '--workers', type=int, default=4, help='number of threads to be used')
 args = parser.parse_args()
 
-
 if __name__ == '__main__':
     train_version = f'{args.version}-trainval'
     nuscenes_data_prep(
@@ -933,12 +1044,12 @@ if __name__ == '__main__':
         dataset_name='NuScenesDataset',
         out_dir=args.out_dir,
         max_sweeps=args.max_sweeps)
-    # test_version = f'{args.version}-test'
-    # nuscenes_data_prep(
-    #     root_path=args.root_path,
-    #     can_bus_root_path=args.canbus,
-    #     info_prefix=args.extra_tag,
-    #     version=test_version,
-    #     dataset_name='NuScenesDataset',
-    #     out_dir=args.out_dir,
-    #     max_sweeps=args.max_sweeps)
+    test_version = f'{args.version}-test'
+    nuscenes_data_prep(
+        root_path=args.root_path,
+        can_bus_root_path=args.canbus,
+        info_prefix=args.extra_tag,
+        version=test_version,
+        dataset_name='NuScenesDataset',
+        out_dir=args.out_dir,
+        max_sweeps=args.max_sweeps)
