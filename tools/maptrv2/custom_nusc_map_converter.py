@@ -349,6 +349,10 @@ def _fill_trainval_infos2(nusc,
             train_nusc_infos.append(info)
         else:
             val_nusc_infos.append(info)
+    if len(train_nusc_infos) > 0:
+        train_nusc_infos = sorted(train_nusc_infos, key=lambda x: x['timestamp'])
+    if len(val_nusc_infos) > 0:
+        val_nusc_infos = sorted(val_nusc_infos, key=lambda x: x['timestamp'])
 
     return train_nusc_infos, val_nusc_infos
 
