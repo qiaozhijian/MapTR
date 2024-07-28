@@ -9,17 +9,16 @@ plugin_dir = 'projects/mmdet3d_plugin/'
 # If point cloud range is changed, the models should also change their point
 # cloud range accordingly
 # point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
-point_cloud_range = [-15.0, -30.0,-10.0, 15.0, 30.0, 10.0]
+point_cloud_range = [-15.0, -30.0, -10.0, 15.0, 30.0, 10.0]
 voxel_size = [0.15, 0.15, 20.0]
-dbound=[1.0, 35.0, 0.5]
+dbound = [1.0, 35.0, 0.5]
 
 grid_config = {
-    'x': [-30.0, -30.0, 0.15], # useless
-    'y': [-15.0, -15.0, 0.15], # useless
-    'z': [-10, 10, 20],        # useless
-    'depth': [1.0, 35.0, 0.5], # useful
+    'x': [-30.0, -30.0, 0.15],  # useless
+    'y': [-15.0, -15.0, 0.15],  # useless
+    'z': [-10, 10, 20],  # useless
+    'depth': [1.0, 35.0, 0.5],  # useful
 }
-
 
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
@@ -30,13 +29,13 @@ class_names = [
     'motorcycle', 'bicycle', 'pedestrian', 'traffic_cone'
 ]
 # map has classes: divider, ped_crossing, boundary
-map_classes = ['divider', 'ped_crossing','boundary']
+map_classes = ['divider', 'ped_crossing', 'boundary']
 # fixed_ptsnum_per_line = 20
 # map_classes = ['divider',]
-num_vec=50
-fixed_ptsnum_per_gt_line = 20 # now only support fixed_pts > 0
+num_vec = 50
+fixed_ptsnum_per_gt_line = 20  # now only support fixed_pts > 0
 fixed_ptsnum_per_pred_line = 20
-eval_use_same_gt_sample_num_flag=True
+eval_use_same_gt_sample_num_flag = True
 num_map_classes = len(map_classes)
 
 input_modality = dict(
@@ -47,14 +46,14 @@ input_modality = dict(
     use_external=True)
 
 _dim_ = 256
-_pos_dim_ = _dim_//2
-_ffn_dim_ = _dim_*2
+_pos_dim_ = _dim_ // 2
+_ffn_dim_ = _dim_ * 2
 _num_levels_ = 1
 # bev_h_ = 50
 # bev_w_ = 50
 bev_h_ = 200
 bev_w_ = 100
-queue_length = 1 # each sequence contains `queue_length` frames.
+queue_length = 1  # each sequence contains `queue_length` frames.
 
 aux_seg_cfg = dict(
     use_aux_seg=True,
@@ -95,7 +94,7 @@ model = dict(
         num_vec_one2one=50,
         num_vec_one2many=300,
         k_one2many=6,
-        num_pts_per_vec=fixed_ptsnum_per_pred_line, # one bbox
+        num_pts_per_vec=fixed_ptsnum_per_pred_line,  # one bbox
         num_pts_per_gt_vec=fixed_ptsnum_per_gt_line,
         dir_interval=1,
         query_embed_type='instance_pts',
@@ -127,7 +126,7 @@ model = dict(
                 downsample=2,
                 loss_depth_weight=3.0,
                 depthnet_cfg=dict(use_dcn=False, with_cp=False, aspp_mid_channels=96),
-                grid_config=grid_config,),
+                grid_config=grid_config, ),
             decoder=dict(
                 type='MapTRDecoder',
                 num_layers=6,
@@ -147,7 +146,7 @@ model = dict(
                             embed_dims=_dim_,
                             num_heads=8,
                             dropout=0.1),
-                         dict(
+                        dict(
                             type='CustomMSDeformableAttention',
                             embed_dims=_dim_,
                             num_levels=1),
@@ -155,7 +154,7 @@ model = dict(
 
                     feedforward_channels=_ffn_dim_,
                     ffn_dropout=0.1,
-                    operation_order=('self_attn', 'norm', 'self_attn', 'norm','cross_attn', 'norm',
+                    operation_order=('self_attn', 'norm', 'self_attn', 'norm', 'cross_attn', 'norm',
                                      'ffn', 'norm')))),
         bbox_coder=dict(
             type='MapTRNMSFreeCoder',
@@ -170,7 +169,7 @@ model = dict(
             num_feats=_pos_dim_,
             row_num_embed=bev_h_,
             col_num_embed=bev_w_,
-            ),
+        ),
         loss_cls=dict(
             type='FocalLoss',
             use_sigmoid=True,
@@ -179,15 +178,15 @@ model = dict(
             loss_weight=2.0),
         loss_bbox=dict(type='L1Loss', loss_weight=0.0),
         loss_iou=dict(type='GIoULoss', loss_weight=0.0),
-        loss_pts=dict(type='PtsL1Loss', 
+        loss_pts=dict(type='PtsL1Loss',
                       loss_weight=5.0),
         loss_dir=dict(type='PtsDirCosLoss', loss_weight=0.005),
-        loss_seg=dict(type='SimpleLoss', 
-            pos_weight=4.0,
-            loss_weight=1.0),
-        loss_pv_seg=dict(type='SimpleLoss', 
-                    pos_weight=1.0,
-                    loss_weight=2.0),),
+        loss_seg=dict(type='SimpleLoss',
+                      pos_weight=4.0,
+                      loss_weight=1.0),
+        loss_pv_seg=dict(type='SimpleLoss',
+                         pos_weight=1.0,
+                         loss_weight=2.0), ),
     # model training and testing settings
     train_cfg=dict(pts=dict(
         grid_size=[512, 512, 1],
@@ -201,14 +200,13 @@ model = dict(
             # reg_cost=dict(type='BBox3DL1Cost', weight=0.25),
             # iou_cost=dict(type='IoUCost', weight=1.0), # Fake cost. This is just to make it compatible with DETR head.
             iou_cost=dict(type='IoUCost', iou_mode='giou', weight=0.0),
-            pts_cost=dict(type='OrderedPtsL1Cost', 
-                      weight=5),
+            pts_cost=dict(type='OrderedPtsL1Cost',
+                          weight=5),
             pc_range=point_cloud_range))))
 
 dataset_type = 'CustomNuScenesOfflineLocalMapDataset'
 data_root = '/home/qzj/datasets/nuscenes/'
 file_client_args = dict(backend='disk')
-
 
 train_pipeline = [
     dict(type='LoadMultiViewImageFromFiles', to_float32=True),
@@ -222,8 +220,8 @@ train_pipeline = [
         use_dim=5,
         file_client_args=file_client_args),
     dict(type='CustomPointToMultiViewDepth', downsample=1, grid_config=grid_config),
-    dict(type='PadMultiViewImageDepth', size_divisor=32), 
-    dict(type='DefaultFormatBundle3D', with_gt=False, with_label=False,class_names=map_classes),
+    dict(type='PadMultiViewImageDepth', size_divisor=32),
+    dict(type='DefaultFormatBundle3D', with_gt=False, with_label=False, class_names=map_classes),
     dict(type='CustomCollect3D', keys=['img', 'gt_depth'])
 ]
 
@@ -231,7 +229,7 @@ test_pipeline = [
     dict(type='LoadMultiViewImageFromFiles', to_float32=True),
     dict(type='RandomScaleImageMultiViewImage', scales=[0.5]),
     dict(type='NormalizeMultiviewImage', **img_norm_cfg),
-   
+
     dict(
         type='MultiScaleFlipAug3D',
         img_scale=(1600, 900),
@@ -240,8 +238,8 @@ test_pipeline = [
         transforms=[
             dict(type='PadMultiViewImage', size_divisor=32),
             dict(
-                type='DefaultFormatBundle3D', 
-                with_gt=False, 
+                type='DefaultFormatBundle3D',
+                with_gt=False,
                 with_label=False,
                 class_names=map_classes),
             dict(type='CustomCollect3D', keys=['img'])
@@ -250,7 +248,7 @@ test_pipeline = [
 
 data = dict(
     samples_per_gpu=1,
-    workers_per_gpu=4, # TODO
+    workers_per_gpu=4,  # TODO
     train=dict(
         type=dataset_type,
         data_root=data_root,
@@ -276,7 +274,7 @@ data = dict(
         data_root=data_root,
         ann_file=data_root + 'nuscenes_map_infos_temporal_val.pkl',
         map_ann_file=data_root + 'nuscenes_map_anns_val.json',
-        pipeline=test_pipeline,  bev_size=(bev_h_, bev_w_),
+        pipeline=test_pipeline, bev_size=(bev_h_, bev_w_),
         pc_range=point_cloud_range,
         fixed_ptsnum_per_line=fixed_ptsnum_per_gt_line,
         eval_use_same_gt_sample_num_flag=eval_use_same_gt_sample_num_flag,
@@ -286,16 +284,16 @@ data = dict(
     test=dict(
         type=dataset_type,
         data_root=data_root,
-        ann_file=data_root + 'pkls2/nuscenes_map_infos_temporal_train.pkl',
-        map_ann_file=data_root + 'nuscenes_map_anns_val.json',
-        pipeline=test_pipeline, 
+        ann_file=data_root + 'pkls2/nuscenes_map_infos_temporal_all.pkl',
+        map_ann_file=data_root + 'pkls2/nuscenes_map_anns_test.json',
+        pipeline=test_pipeline,
         bev_size=(bev_h_, bev_w_),
         pc_range=point_cloud_range,
         fixed_ptsnum_per_line=fixed_ptsnum_per_gt_line,
         eval_use_same_gt_sample_num_flag=eval_use_same_gt_sample_num_flag,
         padding_value=-10000,
         map_classes=map_classes,
-        classes=class_names, 
+        classes=class_names,
         modality=input_modality),
     shuffler_sampler=dict(type='DistributedGroupSampler'),
     nonshuffler_sampler=dict(type='DistributedSampler')
@@ -334,4 +332,4 @@ log_config = dict(
     ])
 fp16 = dict(loss_scale=512.)
 checkpoint_config = dict(max_keep_ckpts=1, interval=2)
-find_unused_parameters=True
+find_unused_parameters = True

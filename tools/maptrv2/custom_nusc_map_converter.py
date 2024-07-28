@@ -1040,6 +1040,7 @@ args = parser.parse_args()
 
 if __name__ == '__main__':
     train_version = f'{args.version}-trainval'
+    # train_version = "v1.0-mini"
     nuscenes_data_prep(
         root_path=args.root_path,
         can_bus_root_path=args.canbus,
@@ -1057,3 +1058,19 @@ if __name__ == '__main__':
         dataset_name='NuScenesDataset',
         out_dir=args.out_dir,
         max_sweeps=args.max_sweeps)
+
+    train_info_file = osp.join(args.out_dir, '{}_map_infos_temporal_test.pkl'.format(args.extra_tag))
+    val_info_file = osp.join(args.out_dir, '{}_map_infos_temporal_val.pkl'.format(args.extra_tag))
+    test_info_file = osp.join(args.out_dir, '{}_map_infos_temporal_test.pkl'.format(args.extra_tag))
+    train_infos = mmcv.load(train_info_file)['infos']
+    val_infos = mmcv.load(val_info_file)['infos']
+    test_infos = mmcv.load(test_info_file)['infos']
+    all_infos = {
+        'infos': train_infos + val_infos + test_infos,
+        'metadata': {'version': 'v1.0-trainval-test'}
+    }
+    info_file = osp.join(args.out_dir, '{}_map_infos_temporal_all.pkl'.format(args.extra_tag))
+    mmcv.dump(all_infos, info_file)
+    print('train sample: {}, val sample: {}, test sample: {}, all sample: {}'.format(len(train_infos), len(val_infos),
+                                                                                     len(test_infos),
+                                                                                     len(all_infos['infos'])))
