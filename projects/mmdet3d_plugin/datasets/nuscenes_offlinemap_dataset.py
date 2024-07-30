@@ -24,8 +24,9 @@ from mmdet.datasets.pipelines import to_tensor
 import json
 import cv2
 
+
 def add_rotation_noise(extrinsics, std=0.01, mean=0.0):
-    #n = extrinsics.shape[0]
+    # n = extrinsics.shape[0]
     noise_angle = torch.normal(mean, std=std, size=(3,))
     # extrinsics[:, 0:3, 0:3] *= (1 + noise)
     sin_noise = torch.sin(noise_angle)
@@ -66,6 +67,7 @@ def add_translation_noise(extrinsics, std=0.01, mean=0.0):
     extrinsics[0:3, -1] += noise.numpy()
     return extrinsics
 
+
 def perspective(cam_coords, proj_mat):
     pix_coords = proj_mat @ cam_coords
     valid_idx = pix_coords[2, :] > 0
@@ -73,11 +75,14 @@ def perspective(cam_coords, proj_mat):
     pix_coords = pix_coords[:2, :] / (pix_coords[2, :] + 1e-7)
     pix_coords = pix_coords.transpose(1, 0)
     return pix_coords
+
+
 class LiDARInstanceLines(object):
     """Line instance in LIDAR coordinates
 
     """
-    def __init__(self, 
+
+    def __init__(self,
                  instance_line_list,
                  instance_labels,
                  sample_dist=1,
@@ -117,11 +122,11 @@ class LiDARInstanceLines(object):
         instance_se_points_array = np.array(instance_se_points_list)
         instance_se_points_tensor = to_tensor(instance_se_points_array)
         instance_se_points_tensor = instance_se_points_tensor.to(
-                                dtype=torch.float32)
-        instance_se_points_tensor[:,0] = torch.clamp(instance_se_points_tensor[:,0], min=-self.max_x,max=self.max_x)
-        instance_se_points_tensor[:,1] = torch.clamp(instance_se_points_tensor[:,1], min=-self.max_y,max=self.max_y)
-        instance_se_points_tensor[:,2] = torch.clamp(instance_se_points_tensor[:,2], min=-self.max_x,max=self.max_x)
-        instance_se_points_tensor[:,3] = torch.clamp(instance_se_points_tensor[:,3], min=-self.max_y,max=self.max_y)
+            dtype=torch.float32)
+        instance_se_points_tensor[:, 0] = torch.clamp(instance_se_points_tensor[:, 0], min=-self.max_x, max=self.max_x)
+        instance_se_points_tensor[:, 1] = torch.clamp(instance_se_points_tensor[:, 1], min=-self.max_y, max=self.max_y)
+        instance_se_points_tensor[:, 2] = torch.clamp(instance_se_points_tensor[:, 2], min=-self.max_x, max=self.max_x)
+        instance_se_points_tensor[:, 3] = torch.clamp(instance_se_points_tensor[:, 3], min=-self.max_y, max=self.max_y)
         return instance_se_points_tensor
 
     @property
@@ -137,11 +142,11 @@ class LiDARInstanceLines(object):
         instance_bbox_array = np.array(instance_bbox_list)
         instance_bbox_tensor = to_tensor(instance_bbox_array)
         instance_bbox_tensor = instance_bbox_tensor.to(
-                            dtype=torch.float32)
-        instance_bbox_tensor[:,0] = torch.clamp(instance_bbox_tensor[:,0], min=-self.max_x,max=self.max_x)
-        instance_bbox_tensor[:,1] = torch.clamp(instance_bbox_tensor[:,1], min=-self.max_y,max=self.max_y)
-        instance_bbox_tensor[:,2] = torch.clamp(instance_bbox_tensor[:,2], min=-self.max_x,max=self.max_x)
-        instance_bbox_tensor[:,3] = torch.clamp(instance_bbox_tensor[:,3], min=-self.max_y,max=self.max_y)
+            dtype=torch.float32)
+        instance_bbox_tensor[:, 0] = torch.clamp(instance_bbox_tensor[:, 0], min=-self.max_x, max=self.max_x)
+        instance_bbox_tensor[:, 1] = torch.clamp(instance_bbox_tensor[:, 1], min=-self.max_y, max=self.max_y)
+        instance_bbox_tensor[:, 2] = torch.clamp(instance_bbox_tensor[:, 2], min=-self.max_x, max=self.max_x)
+        instance_bbox_tensor[:, 3] = torch.clamp(instance_bbox_tensor[:, 3], min=-self.max_y, max=self.max_y)
         return instance_bbox_tensor
 
     @property
@@ -154,14 +159,15 @@ class LiDARInstanceLines(object):
         instance_points_list = []
         for instance in self.instance_list:
             distances = np.linspace(0, instance.length, self.fixed_num)
-            sampled_points = np.array([list(instance.interpolate(distance).coords) for distance in distances]).reshape(-1, 2)
+            sampled_points = np.array([list(instance.interpolate(distance).coords) for distance in distances]).reshape(
+                -1, 2)
             instance_points_list.append(sampled_points)
         instance_points_array = np.array(instance_points_list)
         instance_points_tensor = to_tensor(instance_points_array)
         instance_points_tensor = instance_points_tensor.to(
-                            dtype=torch.float32)
-        instance_points_tensor[:,:,0] = torch.clamp(instance_points_tensor[:,:,0], min=-self.max_x,max=self.max_x)
-        instance_points_tensor[:,:,1] = torch.clamp(instance_points_tensor[:,:,1], min=-self.max_y,max=self.max_y)
+            dtype=torch.float32)
+        instance_points_tensor[:, :, 0] = torch.clamp(instance_points_tensor[:, :, 0], min=-self.max_x, max=self.max_x)
+        instance_points_tensor[:, :, 1] = torch.clamp(instance_points_tensor[:, :, 1], min=-self.max_y, max=self.max_y)
         return instance_points_tensor
 
     @property
@@ -174,14 +180,15 @@ class LiDARInstanceLines(object):
         instance_points_list = []
         for instance in self.instance_list:
             distances = np.linspace(0, instance.length, self.fixed_num)
-            sampled_points = np.array([list(instance.interpolate(distance).coords) for distance in distances]).reshape(-1, 2)
+            sampled_points = np.array([list(instance.interpolate(distance).coords) for distance in distances]).reshape(
+                -1, 2)
             instance_points_list.append(sampled_points)
         instance_points_array = np.array(instance_points_list)
         instance_points_tensor = to_tensor(instance_points_array)
         instance_points_tensor = instance_points_tensor.to(
-                            dtype=torch.float32)
-        instance_points_tensor[:,:,0] = torch.clamp(instance_points_tensor[:,:,0], min=-self.max_x,max=self.max_x)
-        instance_points_tensor[:,:,1] = torch.clamp(instance_points_tensor[:,:,1], min=-self.max_y,max=self.max_y)
+            dtype=torch.float32)
+        instance_points_tensor[:, :, 0] = torch.clamp(instance_points_tensor[:, :, 0], min=-self.max_x, max=self.max_x)
+        instance_points_tensor[:, :, 1] = torch.clamp(instance_points_tensor[:, :, 1], min=-self.max_y, max=self.max_y)
         instance_points_tensor = instance_points_tensor.unsqueeze(1)
         return instance_points_tensor
 
@@ -197,17 +204,18 @@ class LiDARInstanceLines(object):
             # distances = np.linspace(0, instance.length, self.fixed_num)
             # sampled_points = np.array([list(instance.interpolate(distance).coords) for distance in distances]).reshape(-1, 2)
             poly_pts = to_tensor(np.array(list(instance.coords)))
-            poly_pts = poly_pts.unsqueeze(0).permute(0,2,1)
-            sampled_pts = torch.nn.functional.interpolate(poly_pts,size=(self.fixed_num),mode='linear',align_corners=True)
-            sampled_pts = sampled_pts.permute(0,2,1).squeeze(0)
+            poly_pts = poly_pts.unsqueeze(0).permute(0, 2, 1)
+            sampled_pts = torch.nn.functional.interpolate(poly_pts, size=(self.fixed_num), mode='linear',
+                                                          align_corners=True)
+            sampled_pts = sampled_pts.permute(0, 2, 1).squeeze(0)
             instance_points_list.append(sampled_pts)
         # instance_points_array = np.array(instance_points_list)
         # instance_points_tensor = to_tensor(instance_points_array)
-        instance_points_tensor = torch.stack(instance_points_list,dim=0)
+        instance_points_tensor = torch.stack(instance_points_list, dim=0)
         instance_points_tensor = instance_points_tensor.to(
-                            dtype=torch.float32)
-        instance_points_tensor[:,:,0] = torch.clamp(instance_points_tensor[:,:,0], min=-self.max_x,max=self.max_x)
-        instance_points_tensor[:,:,1] = torch.clamp(instance_points_tensor[:,:,1], min=-self.max_y,max=self.max_y)
+            dtype=torch.float32)
+        instance_points_tensor[:, :, 0] = torch.clamp(instance_points_tensor[:, :, 0], min=-self.max_x, max=self.max_x)
+        instance_points_tensor[:, :, 1] = torch.clamp(instance_points_tensor[:, :, 1], min=-self.max_y, max=self.max_y)
         return instance_points_tensor
 
     @property
@@ -228,7 +236,8 @@ class LiDARInstanceLines(object):
             pts_num, coords_num = poly_pts.shape
             shift_num = pts_num - 1
             final_shift_num = self.fixed_num - 1
-            sampled_points = np.array([list(instance.interpolate(distance).coords) for distance in distances]).reshape(-1, 2)
+            sampled_points = np.array([list(instance.interpolate(distance).coords) for distance in distances]).reshape(
+                -1, 2)
             shift_pts_list.append(sampled_points)
             # if is_poly:
             #     pts_to_shift = poly_pts[:-1,:]
@@ -246,28 +255,31 @@ class LiDARInstanceLines(object):
             #     flip_sampled_points = np.flip(sampled_points, axis=0)
             #     shift_pts_list.append(sampled_points)
             #     shift_pts_list.append(flip_sampled_points)
-            
-            multi_shifts_pts = np.stack(shift_pts_list,axis=0)
-            shifts_num,_,_ = multi_shifts_pts.shape
+
+            multi_shifts_pts = np.stack(shift_pts_list, axis=0)
+            shifts_num, _, _ = multi_shifts_pts.shape
 
             if shifts_num > final_shift_num:
                 index = np.random.choice(multi_shifts_pts.shape[0], final_shift_num, replace=False)
                 multi_shifts_pts = multi_shifts_pts[index]
-            
+
             multi_shifts_pts_tensor = to_tensor(multi_shifts_pts)
             multi_shifts_pts_tensor = multi_shifts_pts_tensor.to(
-                            dtype=torch.float32)
-            
-            multi_shifts_pts_tensor[:,:,0] = torch.clamp(multi_shifts_pts_tensor[:,:,0], min=-self.max_x,max=self.max_x)
-            multi_shifts_pts_tensor[:,:,1] = torch.clamp(multi_shifts_pts_tensor[:,:,1], min=-self.max_y,max=self.max_y)
+                dtype=torch.float32)
+
+            multi_shifts_pts_tensor[:, :, 0] = torch.clamp(multi_shifts_pts_tensor[:, :, 0], min=-self.max_x,
+                                                           max=self.max_x)
+            multi_shifts_pts_tensor[:, :, 1] = torch.clamp(multi_shifts_pts_tensor[:, :, 1], min=-self.max_y,
+                                                           max=self.max_y)
             # if not is_poly:
             if multi_shifts_pts_tensor.shape[0] < final_shift_num:
-                padding = torch.full([final_shift_num-multi_shifts_pts_tensor.shape[0],self.fixed_num,2], self.padding_value)
-                multi_shifts_pts_tensor = torch.cat([multi_shifts_pts_tensor,padding],dim=0)
+                padding = torch.full([final_shift_num - multi_shifts_pts_tensor.shape[0], self.fixed_num, 2],
+                                     self.padding_value)
+                multi_shifts_pts_tensor = torch.cat([multi_shifts_pts_tensor, padding], dim=0)
             instances_list.append(multi_shifts_pts_tensor)
         instances_tensor = torch.stack(instances_list, dim=0)
         instances_tensor = instances_tensor.to(
-                            dtype=torch.float32)
+            dtype=torch.float32)
         return instances_tensor
 
     @property
@@ -286,35 +298,35 @@ class LiDARInstanceLines(object):
             pts_num = fixed_num_pts.shape[0]
             shift_num = pts_num - 1
             if is_poly:
-                pts_to_shift = fixed_num_pts[:-1,:]
+                pts_to_shift = fixed_num_pts[:-1, :]
             shift_pts_list = []
             if is_poly:
                 for shift_right_i in range(shift_num):
-                    shift_pts_list.append(pts_to_shift.roll(shift_right_i,0))
+                    shift_pts_list.append(pts_to_shift.roll(shift_right_i, 0))
             else:
                 shift_pts_list.append(fixed_num_pts)
                 shift_pts_list.append(fixed_num_pts.flip(0))
-            shift_pts = torch.stack(shift_pts_list,dim=0)
+            shift_pts = torch.stack(shift_pts_list, dim=0)
 
             if is_poly:
                 _, _, num_coords = shift_pts.shape
                 tmp_shift_pts = shift_pts.new_zeros((shift_num, pts_num, num_coords))
-                tmp_shift_pts[:,:-1,:] = shift_pts
-                tmp_shift_pts[:,-1,:] = shift_pts[:,0,:]
+                tmp_shift_pts[:, :-1, :] = shift_pts
+                tmp_shift_pts[:, -1, :] = shift_pts[:, 0, :]
                 shift_pts = tmp_shift_pts
 
-            shift_pts[:,:,0] = torch.clamp(shift_pts[:,:,0], min=-self.max_x,max=self.max_x)
-            shift_pts[:,:,1] = torch.clamp(shift_pts[:,:,1], min=-self.max_y,max=self.max_y)
+            shift_pts[:, :, 0] = torch.clamp(shift_pts[:, :, 0], min=-self.max_x, max=self.max_x)
+            shift_pts[:, :, 1] = torch.clamp(shift_pts[:, :, 1], min=-self.max_y, max=self.max_y)
 
             if not is_poly:
-                padding = torch.full([shift_num-shift_pts.shape[0],pts_num,2], self.padding_value)
-                shift_pts = torch.cat([shift_pts,padding],dim=0)
+                padding = torch.full([shift_num - shift_pts.shape[0], pts_num, 2], self.padding_value)
+                shift_pts = torch.cat([shift_pts, padding], dim=0)
                 # padding = np.zeros((self.num_samples - len(sampled_points), 2))
                 # sampled_points = np.concatenate([sampled_points, padding], axis=0)
             instances_list.append(shift_pts)
         instances_tensor = torch.stack(instances_list, dim=0)
         instances_tensor = instances_tensor.to(
-                            dtype=torch.float32)
+            dtype=torch.float32)
         return instances_tensor
 
     @property
@@ -339,47 +351,54 @@ class LiDARInstanceLines(object):
             final_shift_num = self.fixed_num - 1
             if instance_label == 3:
                 # import ipdb;ipdb.set_trace()
-                sampled_points = np.array([list(instance.interpolate(distance).coords) for distance in distances]).reshape(-1, 2)
+                sampled_points = np.array(
+                    [list(instance.interpolate(distance).coords) for distance in distances]).reshape(-1, 2)
                 shift_pts_list.append(sampled_points)
             else:
                 if is_poly:
-                    pts_to_shift = poly_pts[:-1,:]
+                    pts_to_shift = poly_pts[:-1, :]
                     for shift_right_i in range(shift_num):
-                        shift_pts = np.roll(pts_to_shift,shift_right_i,axis=0)
+                        shift_pts = np.roll(pts_to_shift, shift_right_i, axis=0)
                         pts_to_concat = shift_pts[0]
-                        pts_to_concat = np.expand_dims(pts_to_concat,axis=0)
-                        shift_pts = np.concatenate((shift_pts,pts_to_concat),axis=0)
+                        pts_to_concat = np.expand_dims(pts_to_concat, axis=0)
+                        shift_pts = np.concatenate((shift_pts, pts_to_concat), axis=0)
                         shift_instance = LineString(shift_pts)
-                        shift_sampled_points = np.array([list(shift_instance.interpolate(distance).coords) for distance in distances]).reshape(-1, 2)
+                        shift_sampled_points = np.array(
+                            [list(shift_instance.interpolate(distance).coords) for distance in distances]).reshape(-1,
+                                                                                                                   2)
                         shift_pts_list.append(shift_sampled_points)
                     # import pdb;pdb.set_trace()
                 else:
-                    sampled_points = np.array([list(instance.interpolate(distance).coords) for distance in distances]).reshape(-1, 2)
+                    sampled_points = np.array(
+                        [list(instance.interpolate(distance).coords) for distance in distances]).reshape(-1, 2)
                     flip_sampled_points = np.flip(sampled_points, axis=0)
                     shift_pts_list.append(sampled_points)
                     shift_pts_list.append(flip_sampled_points)
-            
-            multi_shifts_pts = np.stack(shift_pts_list,axis=0)
-            shifts_num,_,_ = multi_shifts_pts.shape
+
+            multi_shifts_pts = np.stack(shift_pts_list, axis=0)
+            shifts_num, _, _ = multi_shifts_pts.shape
 
             if shifts_num > final_shift_num:
                 index = np.random.choice(multi_shifts_pts.shape[0], final_shift_num, replace=False)
                 multi_shifts_pts = multi_shifts_pts[index]
-            
+
             multi_shifts_pts_tensor = to_tensor(multi_shifts_pts)
             multi_shifts_pts_tensor = multi_shifts_pts_tensor.to(
-                            dtype=torch.float32)
-            
-            multi_shifts_pts_tensor[:,:,0] = torch.clamp(multi_shifts_pts_tensor[:,:,0], min=-self.max_x,max=self.max_x)
-            multi_shifts_pts_tensor[:,:,1] = torch.clamp(multi_shifts_pts_tensor[:,:,1], min=-self.max_y,max=self.max_y)
+                dtype=torch.float32)
+
+            multi_shifts_pts_tensor[:, :, 0] = torch.clamp(multi_shifts_pts_tensor[:, :, 0], min=-self.max_x,
+                                                           max=self.max_x)
+            multi_shifts_pts_tensor[:, :, 1] = torch.clamp(multi_shifts_pts_tensor[:, :, 1], min=-self.max_y,
+                                                           max=self.max_y)
             # if not is_poly:
             if multi_shifts_pts_tensor.shape[0] < final_shift_num:
-                padding = torch.full([final_shift_num-multi_shifts_pts_tensor.shape[0],self.fixed_num,2], self.padding_value)
-                multi_shifts_pts_tensor = torch.cat([multi_shifts_pts_tensor,padding],dim=0)
+                padding = torch.full([final_shift_num - multi_shifts_pts_tensor.shape[0], self.fixed_num, 2],
+                                     self.padding_value)
+                multi_shifts_pts_tensor = torch.cat([multi_shifts_pts_tensor, padding], dim=0)
             instances_list.append(multi_shifts_pts_tensor)
         instances_tensor = torch.stack(instances_list, dim=0)
         instances_tensor = instances_tensor.to(
-                            dtype=torch.float32)
+            dtype=torch.float32)
         return instances_tensor
 
     @property
@@ -401,51 +420,57 @@ class LiDARInstanceLines(object):
             shift_num = pts_num - 1
             final_shift_num = self.fixed_num - 1
             if is_poly:
-                pts_to_shift = poly_pts[:-1,:]
+                pts_to_shift = poly_pts[:-1, :]
                 for shift_right_i in range(shift_num):
-                    shift_pts = np.roll(pts_to_shift,shift_right_i,axis=0)
+                    shift_pts = np.roll(pts_to_shift, shift_right_i, axis=0)
                     pts_to_concat = shift_pts[0]
-                    pts_to_concat = np.expand_dims(pts_to_concat,axis=0)
-                    shift_pts = np.concatenate((shift_pts,pts_to_concat),axis=0)
+                    pts_to_concat = np.expand_dims(pts_to_concat, axis=0)
+                    shift_pts = np.concatenate((shift_pts, pts_to_concat), axis=0)
                     shift_instance = LineString(shift_pts)
-                    shift_sampled_points = np.array([list(shift_instance.interpolate(distance).coords) for distance in distances]).reshape(-1, 2)
+                    shift_sampled_points = np.array(
+                        [list(shift_instance.interpolate(distance).coords) for distance in distances]).reshape(-1, 2)
                     shift_pts_list.append(shift_sampled_points)
                 flip_pts_to_shift = np.flip(pts_to_shift, axis=0)
                 for shift_right_i in range(shift_num):
-                    shift_pts = np.roll(flip_pts_to_shift,shift_right_i,axis=0)
+                    shift_pts = np.roll(flip_pts_to_shift, shift_right_i, axis=0)
                     pts_to_concat = shift_pts[0]
-                    pts_to_concat = np.expand_dims(pts_to_concat,axis=0)
-                    shift_pts = np.concatenate((shift_pts,pts_to_concat),axis=0)
+                    pts_to_concat = np.expand_dims(pts_to_concat, axis=0)
+                    shift_pts = np.concatenate((shift_pts, pts_to_concat), axis=0)
                     shift_instance = LineString(shift_pts)
-                    shift_sampled_points = np.array([list(shift_instance.interpolate(distance).coords) for distance in distances]).reshape(-1, 2)
+                    shift_sampled_points = np.array(
+                        [list(shift_instance.interpolate(distance).coords) for distance in distances]).reshape(-1, 2)
                     shift_pts_list.append(shift_sampled_points)
             else:
-                sampled_points = np.array([list(instance.interpolate(distance).coords) for distance in distances]).reshape(-1, 2)
+                sampled_points = np.array(
+                    [list(instance.interpolate(distance).coords) for distance in distances]).reshape(-1, 2)
                 flip_sampled_points = np.flip(sampled_points, axis=0)
                 shift_pts_list.append(sampled_points)
                 shift_pts_list.append(flip_sampled_points)
-            
-            multi_shifts_pts = np.stack(shift_pts_list,axis=0)
-            shifts_num,_,_ = multi_shifts_pts.shape
-            if shifts_num > 2*final_shift_num:
+
+            multi_shifts_pts = np.stack(shift_pts_list, axis=0)
+            shifts_num, _, _ = multi_shifts_pts.shape
+            if shifts_num > 2 * final_shift_num:
                 index = np.random.choice(shift_num, final_shift_num, replace=False)
                 flip0_shifts_pts = multi_shifts_pts[index]
-                flip1_shifts_pts = multi_shifts_pts[index+shift_num]
-                multi_shifts_pts = np.concatenate((flip0_shifts_pts,flip1_shifts_pts),axis=0)
-            
+                flip1_shifts_pts = multi_shifts_pts[index + shift_num]
+                multi_shifts_pts = np.concatenate((flip0_shifts_pts, flip1_shifts_pts), axis=0)
+
             multi_shifts_pts_tensor = to_tensor(multi_shifts_pts)
             multi_shifts_pts_tensor = multi_shifts_pts_tensor.to(
-                            dtype=torch.float32)
-            
-            multi_shifts_pts_tensor[:,:,0] = torch.clamp(multi_shifts_pts_tensor[:,:,0], min=-self.max_x,max=self.max_x)
-            multi_shifts_pts_tensor[:,:,1] = torch.clamp(multi_shifts_pts_tensor[:,:,1], min=-self.max_y,max=self.max_y)
-            if multi_shifts_pts_tensor.shape[0] < 2*final_shift_num:
-                padding = torch.full([final_shift_num*2-multi_shifts_pts_tensor.shape[0],self.fixed_num,2], self.padding_value)
-                multi_shifts_pts_tensor = torch.cat([multi_shifts_pts_tensor,padding],dim=0)
+                dtype=torch.float32)
+
+            multi_shifts_pts_tensor[:, :, 0] = torch.clamp(multi_shifts_pts_tensor[:, :, 0], min=-self.max_x,
+                                                           max=self.max_x)
+            multi_shifts_pts_tensor[:, :, 1] = torch.clamp(multi_shifts_pts_tensor[:, :, 1], min=-self.max_y,
+                                                           max=self.max_y)
+            if multi_shifts_pts_tensor.shape[0] < 2 * final_shift_num:
+                padding = torch.full([final_shift_num * 2 - multi_shifts_pts_tensor.shape[0], self.fixed_num, 2],
+                                     self.padding_value)
+                multi_shifts_pts_tensor = torch.cat([multi_shifts_pts_tensor, padding], dim=0)
             instances_list.append(multi_shifts_pts_tensor)
         instances_tensor = torch.stack(instances_list, dim=0)
         instances_tensor = instances_tensor.to(
-                            dtype=torch.float32)
+            dtype=torch.float32)
         return instances_tensor
 
     @property
@@ -462,34 +487,34 @@ class LiDARInstanceLines(object):
             shift_num = pts_num - 1
             shift_pts_list = []
             if is_poly:
-                pts_to_shift = fixed_num_pts[:-1,:]
+                pts_to_shift = fixed_num_pts[:-1, :]
                 for shift_right_i in range(shift_num):
-                    shift_pts_list.append(pts_to_shift.roll(shift_right_i,0))
+                    shift_pts_list.append(pts_to_shift.roll(shift_right_i, 0))
                 flip_pts_to_shift = pts_to_shift.flip(0)
                 for shift_right_i in range(shift_num):
-                    shift_pts_list.append(flip_pts_to_shift.roll(shift_right_i,0))
+                    shift_pts_list.append(flip_pts_to_shift.roll(shift_right_i, 0))
             else:
                 shift_pts_list.append(fixed_num_pts)
                 shift_pts_list.append(fixed_num_pts.flip(0))
-            shift_pts = torch.stack(shift_pts_list,dim=0)
+            shift_pts = torch.stack(shift_pts_list, dim=0)
 
             if is_poly:
                 _, _, num_coords = shift_pts.shape
-                tmp_shift_pts = shift_pts.new_zeros((shift_num*2, pts_num, num_coords))
-                tmp_shift_pts[:,:-1,:] = shift_pts
-                tmp_shift_pts[:,-1,:] = shift_pts[:,0,:]
+                tmp_shift_pts = shift_pts.new_zeros((shift_num * 2, pts_num, num_coords))
+                tmp_shift_pts[:, :-1, :] = shift_pts
+                tmp_shift_pts[:, -1, :] = shift_pts[:, 0, :]
                 shift_pts = tmp_shift_pts
 
-            shift_pts[:,:,0] = torch.clamp(shift_pts[:,:,0], min=-self.max_x,max=self.max_x)
-            shift_pts[:,:,1] = torch.clamp(shift_pts[:,:,1], min=-self.max_y,max=self.max_y)
+            shift_pts[:, :, 0] = torch.clamp(shift_pts[:, :, 0], min=-self.max_x, max=self.max_x)
+            shift_pts[:, :, 1] = torch.clamp(shift_pts[:, :, 1], min=-self.max_y, max=self.max_y)
 
             if not is_poly:
-                padding = torch.full([shift_num*2-shift_pts.shape[0],pts_num,2], self.padding_value)
-                shift_pts = torch.cat([shift_pts,padding],dim=0)
+                padding = torch.full([shift_num * 2 - shift_pts.shape[0], pts_num, 2], self.padding_value)
+                shift_pts = torch.cat([shift_pts, padding], dim=0)
             instances_list.append(shift_pts)
         instances_tensor = torch.stack(instances_list, dim=0)
         instances_tensor = instances_tensor.to(
-                            dtype=torch.float32)
+            dtype=torch.float32)
         return instances_tensor
 
     @property
@@ -507,24 +532,23 @@ class LiDARInstanceLines(object):
             shift_pts_list = []
             if is_poly:
                 for shift_right_i in range(fixed_num):
-                    shift_pts_list.append(fixed_num_pts.roll(shift_right_i,0))
+                    shift_pts_list.append(fixed_num_pts.roll(shift_right_i, 0))
             else:
                 shift_pts_list.append(fixed_num_pts)
                 shift_pts_list.append(fixed_num_pts.flip(0))
-            shift_pts = torch.stack(shift_pts_list,dim=0)
+            shift_pts = torch.stack(shift_pts_list, dim=0)
 
-            shift_pts[:,:,0] = torch.clamp(shift_pts[:,:,0], min=-self.max_x,max=self.max_x)
-            shift_pts[:,:,1] = torch.clamp(shift_pts[:,:,1], min=-self.max_y,max=self.max_y)
+            shift_pts[:, :, 0] = torch.clamp(shift_pts[:, :, 0], min=-self.max_x, max=self.max_x)
+            shift_pts[:, :, 1] = torch.clamp(shift_pts[:, :, 1], min=-self.max_y, max=self.max_y)
 
             if not is_poly:
-                padding = torch.full([fixed_num-shift_pts.shape[0],fixed_num,2], self.padding_value)
-                shift_pts = torch.cat([shift_pts,padding],dim=0)
+                padding = torch.full([fixed_num - shift_pts.shape[0], fixed_num, 2], self.padding_value)
+                shift_pts = torch.cat([shift_pts, padding], dim=0)
             instances_list.append(shift_pts)
         instances_tensor = torch.stack(instances_list, dim=0)
         instances_tensor = instances_tensor.to(
-                            dtype=torch.float32)
+            dtype=torch.float32)
         return instances_tensor
-
 
 
 class VectorizedLocalMap(object):
@@ -535,22 +559,23 @@ class VectorizedLocalMap(object):
         'centerline': 3,
         'others': -1
     }
+
     def __init__(self,
-                 canvas_size, 
+                 canvas_size,
                  patch_size,
-                 map_classes=['divider','ped_crossing','boundary'],
+                 map_classes=['divider', 'ped_crossing', 'boundary'],
                  sample_dist=1,
                  num_samples=250,
                  padding=False,
                  fixed_ptsnum_per_line=-1,
                  padding_value=-10000,
                  thickness=3,
-                 aux_seg = dict(
-                    use_aux_seg=False,
-                    bev_seg=False,
-                    pv_seg=False,
-                    seg_classes=1,
-                    feat_down_sample=32)):
+                 aux_seg=dict(
+                     use_aux_seg=False,
+                     bev_seg=False,
+                     pv_seg=False,
+                     seg_classes=1,
+                     feat_down_sample=32)):
         '''
         Args:
             fixed_ptsnum_per_line = -1 : no fixed num
@@ -558,7 +583,6 @@ class VectorizedLocalMap(object):
         super().__init__()
 
         self.vec_classes = map_classes
-
 
         self.sample_dist = sample_dist
         self.num_samples = num_samples
@@ -583,8 +607,8 @@ class VectorizedLocalMap(object):
         for vec_class in self.vec_classes:
             instance_list = map_annotation[vec_class]
             for instance in instance_list:
-                vectors.append((LineString(np.array(instance)), self.CLASS2LABEL.get(vec_class, -1))) 
-        # import pdb;pdb.set_trace()
+                vectors.append((LineString(np.array(instance)), self.CLASS2LABEL.get(vec_class, -1)))
+                # import pdb;pdb.set_trace()
         filtered_vectors = []
         gt_pts_loc_3d = []
         gt_pts_num_3d = []
@@ -598,14 +622,16 @@ class VectorizedLocalMap(object):
                     gt_semantic_mask = None
                 # import ipdb;ipdb.set_trace()
                 if self.aux_seg['pv_seg']:
-                    num_cam  = len(example['img_metas'].data['pad_shape'])
+                    num_cam = len(example['img_metas'].data['pad_shape'])
                     img_shape = example['img_metas'].data['pad_shape'][0]
                     # import ipdb;ipdb.set_trace()
-                    gt_pv_semantic_mask = np.zeros((num_cam, 1, img_shape[0] // feat_down_sample, img_shape[1] // feat_down_sample), dtype=np.uint8)
+                    gt_pv_semantic_mask = np.zeros(
+                        (num_cam, 1, img_shape[0] // feat_down_sample, img_shape[1] // feat_down_sample),
+                        dtype=np.uint8)
                     lidar2img = example['img_metas'].data['lidar2img']
                     scale_factor = np.eye(4)
-                    scale_factor[0, 0] *= 1/32
-                    scale_factor[1, 1] *= 1/32
+                    scale_factor[0, 0] *= 1 / 32
+                    scale_factor[1, 1] *= 1 / 32
                     lidar2feat = [scale_factor @ l2i for l2i in lidar2img]
                 else:
                     gt_pv_semantic_mask = None
@@ -618,21 +644,25 @@ class VectorizedLocalMap(object):
                                 self.line_ego_to_mask(instance, gt_semantic_mask[0], color=1, thickness=self.thickness)
                             if self.aux_seg['pv_seg']:
                                 for cam_index in range(num_cam):
-                                    self.line_ego_to_pvmask(instance, gt_pv_semantic_mask[cam_index][0], lidar2feat[cam_index],color=1, thickness=self.aux_seg['pv_thickness'])
+                                    self.line_ego_to_pvmask(instance, gt_pv_semantic_mask[cam_index][0],
+                                                            lidar2feat[cam_index], color=1,
+                                                            thickness=self.aux_seg['pv_thickness'])
                         else:
                             print(instance.geom_type)
             else:
                 if self.aux_seg['bev_seg']:
-                    gt_semantic_mask = np.zeros((len(self.vec_classes), self.canvas_size[0], self.canvas_size[1]), dtype=np.uint8)
+                    gt_semantic_mask = np.zeros((len(self.vec_classes), self.canvas_size[0], self.canvas_size[1]),
+                                                dtype=np.uint8)
                 else:
                     gt_semantic_mask = None
                 if self.aux_seg['pv_seg']:
-                    num_cam  = len(example['img_metas'].data['pad_shape'])
-                    gt_pv_semantic_mask = np.zeros((num_cam, len(self.vec_classes), img_shape[0] // feat_down_sample, img_shape[1] // feat_down_sample), dtype=np.uint8)
+                    num_cam = len(example['img_metas'].data['pad_shape'])
+                    gt_pv_semantic_mask = np.zeros((num_cam, len(self.vec_classes), img_shape[0] // feat_down_sample,
+                                                    img_shape[1] // feat_down_sample), dtype=np.uint8)
                     lidar2img = example['img_metas'].data['lidar2img']
                     scale_factor = np.eye(4)
-                    scale_factor[0, 0] *= 1/32
-                    scale_factor[1, 1] *= 1/32
+                    scale_factor[0, 0] *= 1 / 32
+                    scale_factor[1, 1] *= 1 / 32
                     lidar2feat = [scale_factor @ l2i for l2i in lidar2img]
                 else:
                     gt_pv_semantic_mask = None
@@ -642,10 +672,13 @@ class VectorizedLocalMap(object):
                         gt_labels.append(instance_type)
                         if instance.geom_type == 'LineString':
                             if self.aux_seg['bev_seg']:
-                                self.line_ego_to_mask(instance, gt_semantic_mask[instance_type], color=1, thickness=self.thickness)
+                                self.line_ego_to_mask(instance, gt_semantic_mask[instance_type], color=1,
+                                                      thickness=self.thickness)
                             if self.aux_seg['pv_seg']:
                                 for cam_index in range(num_cam):
-                                    self.line_ego_to_pvmask(instance, gt_pv_semantic_mask[cam_index][instance_type], lidar2feat[cam_index],color=1, thickness=self.aux_seg['pv_thickness'])
+                                    self.line_ego_to_pvmask(instance, gt_pv_semantic_mask[cam_index][instance_type],
+                                                            lidar2feat[cam_index], color=1,
+                                                            thickness=self.aux_seg['pv_thickness'])
                         else:
                             print(instance.geom_type)
         else:
@@ -653,11 +686,11 @@ class VectorizedLocalMap(object):
                 if instance_type != -1:
                     gt_instance.append(instance)
                     gt_labels.append(instance_type)
-            gt_semantic_mask=None
-            gt_pv_semantic_mask=None
-        gt_instance = LiDARInstanceLines(gt_instance,gt_labels, self.sample_dist,
-                        self.num_samples, self.padding, self.fixed_num,self.padding_value, patch_size=self.patch_size)
-
+            gt_semantic_mask = None
+            gt_pv_semantic_mask = None
+        gt_instance = LiDARInstanceLines(gt_instance, gt_labels, self.sample_dist,
+                                         self.num_samples, self.padding, self.fixed_num, self.padding_value,
+                                         patch_size=self.patch_size)
 
         anns_results = dict(
             gt_vecs_pts_loc=gt_instance,
@@ -666,27 +699,28 @@ class VectorizedLocalMap(object):
             gt_pv_semantic_mask=gt_pv_semantic_mask,
         )
         return anns_results
+
     def line_ego_to_pvmask(self,
-                          line_ego, 
-                          mask, 
-                          lidar2feat,
-                          color=1, 
-                          thickness=1,
-                          z=-1.6):
+                           line_ego,
+                           mask,
+                           lidar2feat,
+                           color=1,
+                           thickness=1,
+                           z=-1.6):
         distances = np.linspace(0, line_ego.length, 200)
         coords = np.array([list(line_ego.interpolate(distance).coords) for distance in distances]).reshape(-1, 2)
         pts_num = coords.shape[0]
-        zeros = np.zeros((pts_num,1))
+        zeros = np.zeros((pts_num, 1))
         zeros[:] = z
-        ones = np.ones((pts_num,1))
-        lidar_coords = np.concatenate([coords,zeros,ones], axis=1).transpose(1,0)
+        ones = np.ones((pts_num, 1))
+        lidar_coords = np.concatenate([coords, zeros, ones], axis=1).transpose(1, 0)
         pix_coords = perspective(lidar_coords, lidar2feat)
         cv2.polylines(mask, np.int32([pix_coords]), False, color=color, thickness=thickness)
-        
-    def line_ego_to_mask(self, 
-                         line_ego, 
-                         mask, 
-                         color=1, 
+
+    def line_ego_to_mask(self,
+                         line_ego,
+                         mask,
+                         color=1,
                          thickness=3):
         ''' Rasterize a single line to mask.
         
@@ -705,7 +739,7 @@ class VectorizedLocalMap(object):
         coords = np.array(list(line_ego.coords), dtype=np.int32)[:, :2]
         coords = coords.reshape((-1, 2))
         assert len(coords) >= 2
-        
+
         cv2.polylines(mask, np.int32([coords]), False, color=color, thickness=thickness)
 
     def get_map_geom(self, patch_box, patch_angle, layer_names, location):
@@ -724,7 +758,7 @@ class VectorizedLocalMap(object):
 
     def _one_type_line_geom_to_vectors(self, line_geom):
         line_vectors = []
-        
+
         for line in line_geom:
             if not line.is_empty:
                 if line.geom_type == 'MultiLineString':
@@ -738,7 +772,7 @@ class VectorizedLocalMap(object):
 
     def _one_type_line_geom_to_instances(self, line_geom):
         line_instances = []
-        
+
         for line in line_geom:
             if not line.is_empty:
                 if line.geom_type == 'MultiLineString':
@@ -821,7 +855,6 @@ class VectorizedLocalMap(object):
 
         return self._one_type_line_geom_to_instances(results)
 
-
     def poly_geoms_to_instances(self, polygon_geom):
         roads = polygon_geom[0][1]
         lanes = polygon_geom[1][1]
@@ -866,6 +899,7 @@ class VectorizedLocalMap(object):
             line_vectors_dict[line_type] = one_type_vectors
 
         return line_vectors_dict
+
     def line_geoms_to_instances(self, line_geom):
         line_instances_dict = dict()
         for line_type, a_type_of_lines in line_geom:
@@ -894,7 +928,7 @@ class VectorizedLocalMap(object):
 
         return self._one_type_line_geom_to_vectors(results)
 
-    def get_contour_line(self,patch_box,patch_angle,layer_name,location):
+    def get_contour_line(self, patch_box, patch_angle, layer_name, location):
         if layer_name not in self.map_explorer[location].map_api.non_geometric_polygon_layers:
             raise ValueError('{} is not a polygonal layer'.format(layer_name))
 
@@ -908,7 +942,8 @@ class VectorizedLocalMap(object):
         polygon_list = []
         if layer_name == 'drivable_area':
             for record in records:
-                polygons = [self.map_explorer[location].map_api.extract_polygon(polygon_token) for polygon_token in record['polygon_tokens']]
+                polygons = [self.map_explorer[location].map_api.extract_polygon(polygon_token) for polygon_token in
+                            record['polygon_tokens']]
 
                 for polygon in polygons:
                     new_polygon = polygon.intersection(patch)
@@ -938,7 +973,7 @@ class VectorizedLocalMap(object):
 
         return polygon_list
 
-    def get_divider_line(self,patch_box,patch_angle,layer_name,location):
+    def get_divider_line(self, patch_box, patch_angle, layer_name, location):
         if layer_name not in self.map_explorer[location].map_api.non_geometric_line_layers:
             raise ValueError("{} is not a line layer".format(layer_name))
 
@@ -980,7 +1015,7 @@ class VectorizedLocalMap(object):
                 new_polygon = polygon.intersection(patch)
                 if not new_polygon.is_empty:
                     new_polygon = affinity.rotate(new_polygon, -patch_angle,
-                                                      origin=(patch_x, patch_y), use_radians=False)
+                                                  origin=(patch_x, patch_y), use_radians=False)
                     new_polygon = affinity.affine_transform(new_polygon,
                                                             [1.0, 0.0, 0.0, 1.0, -patch_x, -patch_y])
                     if new_polygon.geom_type == 'Polygon':
@@ -992,12 +1027,13 @@ class VectorizedLocalMap(object):
     def sample_pts_from_line(self, line):
         if self.fixed_num < 0:
             distances = np.arange(0, line.length, self.sample_dist)
-            sampled_points = np.array([list(line.interpolate(distance).coords) for distance in distances]).reshape(-1, 2)
+            sampled_points = np.array([list(line.interpolate(distance).coords) for distance in distances]).reshape(-1,
+                                                                                                                   2)
         else:
             # fixed number of points, so distance is line.length / self.fixed_num
             distances = np.linspace(0, line.length, self.fixed_num)
-            sampled_points = np.array([list(line.interpolate(distance).coords) for distance in distances]).reshape(-1, 2)
-
+            sampled_points = np.array([list(line.interpolate(distance).coords) for distance in distances]).reshape(-1,
+                                                                                                                   2)
 
         num_valid = len(sampled_points)
 
@@ -1015,7 +1051,6 @@ class VectorizedLocalMap(object):
                 sampled_points = sampled_points[:self.num_samples, :]
                 num_valid = self.num_samples
 
-
         return sampled_points, num_valid
 
 
@@ -1026,26 +1061,27 @@ class CustomNuScenesOfflineLocalMapDataset(CustomNuScenesDataset):
     This datset add static map elements
     """
     MAPCLASSES = ('divider',)
+
     def __init__(self,
-                 map_ann_file=None, 
-                 queue_length=4, 
-                 bev_size=(200, 200), 
+                 map_ann_file=None,
+                 queue_length=4,
+                 bev_size=(200, 200),
                  pc_range=[-51.2, -51.2, -5.0, 51.2, 51.2, 3.0],
-                 overlap_test=False, 
+                 overlap_test=False,
                  fixed_ptsnum_per_line=-1,
                  eval_use_same_gt_sample_num_flag=False,
                  padding_value=-10000,
                  map_classes=None,
                  noise='None',
                  noise_std=0,
-                 aux_seg = dict(
-                    use_aux_seg=False,
-                    bev_seg=False,
-                    pv_seg=False,
-                    seg_classes=1,
-                    feat_down_sample=32,
+                 aux_seg=dict(
+                     use_aux_seg=False,
+                     bev_seg=False,
+                     pv_seg=False,
+                     seg_classes=1,
+                     feat_down_sample=32,
                  ),
-                 *args, 
+                 *args,
                  **kwargs):
         super().__init__(*args, **kwargs)
         self.map_ann_file = map_ann_file
@@ -1056,22 +1092,23 @@ class CustomNuScenesOfflineLocalMapDataset(CustomNuScenesDataset):
         self.MAPCLASSES = self.get_map_classes(map_classes)
         self.NUM_MAPCLASSES = len(self.MAPCLASSES)
         self.pc_range = pc_range
-        patch_h = pc_range[4]-pc_range[1]
-        patch_w = pc_range[3]-pc_range[0]
+        patch_h = pc_range[4] - pc_range[1]
+        patch_w = pc_range[3] - pc_range[0]
         self.patch_size = (patch_h, patch_w)
         self.padding_value = padding_value
         self.fixed_num = fixed_ptsnum_per_line
         self.eval_use_same_gt_sample_num_flag = eval_use_same_gt_sample_num_flag
         self.aux_seg = aux_seg
         self.vector_map = VectorizedLocalMap(canvas_size=bev_size,
-                                             patch_size=self.patch_size, 
-                                             map_classes=self.MAPCLASSES, 
+                                             patch_size=self.patch_size,
+                                             map_classes=self.MAPCLASSES,
                                              fixed_ptsnum_per_line=fixed_ptsnum_per_line,
                                              padding_value=self.padding_value,
                                              aux_seg=aux_seg)
         self.is_vis_on_test = False
         self.noise = noise
         self.noise_std = noise_std
+
     @classmethod
     def get_map_classes(cls, map_classes=None):
         """Get class names of current dataset.
@@ -1098,6 +1135,7 @@ class CustomNuScenesOfflineLocalMapDataset(CustomNuScenesDataset):
             raise ValueError(f'Unsupported type {type(map_classes)} of map classes.')
 
         return class_names
+
     def vectormap_pipeline(self, example, input_dict):
         '''
         `example` type: <class 'dict'>
@@ -1110,9 +1148,10 @@ class CustomNuScenesOfflineLocalMapDataset(CustomNuScenesDataset):
         '''
         # import ipdb;ipdb.set_trace()
 
-        anns_results = self.vector_map.gen_vectorized_samples(input_dict['annotation'] if 'annotation' in input_dict.keys() else input_dict['ann_info'],
-                     example=example, feat_down_sample=self.aux_seg['feat_down_sample'])
-        
+        anns_results = self.vector_map.gen_vectorized_samples(
+            input_dict['annotation'] if 'annotation' in input_dict.keys() else input_dict['ann_info'],
+            example=example, feat_down_sample=self.aux_seg['feat_down_sample'])
+
         '''
         anns_results, type: dict
             'gt_vecs_pts_loc': list[num_vecs], vec with num_points*2 coordinates
@@ -1138,7 +1177,7 @@ class CustomNuScenesOfflineLocalMapDataset(CustomNuScenesDataset):
         if anns_results['gt_semantic_mask'] is not None:
             example['gt_seg_mask'] = DC(to_tensor(anns_results['gt_semantic_mask']), cpu_only=False)
         if anns_results['gt_pv_semantic_mask'] is not None:
-            example['gt_pv_seg_mask'] = DC(to_tensor(anns_results['gt_pv_semantic_mask']), cpu_only=False) 
+            example['gt_pv_seg_mask'] = DC(to_tensor(anns_results['gt_pv_semantic_mask']), cpu_only=False)
         return example
 
     def prepare_train_data(self, index):
@@ -1152,7 +1191,7 @@ class CustomNuScenesOfflineLocalMapDataset(CustomNuScenesDataset):
         data_queue = []
 
         # temporal aug
-        prev_indexs_list = list(range(index-self.queue_length, index))
+        prev_indexs_list = list(range(index - self.queue_length, index))
         random.shuffle(prev_indexs_list)
         prev_indexs_list = sorted(prev_indexs_list[1:], reverse=True)
         ##
@@ -1165,7 +1204,7 @@ class CustomNuScenesOfflineLocalMapDataset(CustomNuScenesDataset):
         self.pre_pipeline(input_dict)
         # import pdb;pdb.set_trace()
         example = self.pipeline(input_dict)
-        example = self.vectormap_pipeline(example,input_dict)
+        example = self.vectormap_pipeline(example, input_dict)
         if self.filter_empty_gt and \
                 (example is None or ~(example['gt_labels_3d']._data != -1).any()):
             return None
@@ -1178,7 +1217,7 @@ class CustomNuScenesOfflineLocalMapDataset(CustomNuScenesDataset):
             if input_dict['frame_idx'] < frame_idx and input_dict['scene_token'] == scene_token:
                 self.pre_pipeline(input_dict)
                 example = self.pipeline(input_dict)
-                example = self.vectormap_pipeline(example,input_dict)
+                example = self.vectormap_pipeline(example, input_dict)
                 if self.filter_empty_gt and \
                         (example is None or ~(example['gt_labels_3d']._data != -1).any()):
                     return None
@@ -1206,18 +1245,18 @@ class CustomNuScenesOfflineLocalMapDataset(CustomNuScenesDataset):
                 metas_map[i]['can_bus'][-1] = 0
                 tmp_lidar2prev_lidar = np.eye(4)
                 metas_map[i]['tmp_lidar2prev_lidar'] = tmp_lidar2prev_lidar
-                tmp_lidar2prev_lidar_translation = tmp_lidar2prev_lidar[:3,3]
+                tmp_lidar2prev_lidar_translation = tmp_lidar2prev_lidar[:3, 3]
                 tmp_lidar2prev_lidar_angle = quaternion_yaw(Quaternion(
-                                                matrix=tmp_lidar2prev_lidar)) / np.pi * 180
+                    matrix=tmp_lidar2prev_lidar)) / np.pi * 180
                 metas_map[i]['tmp_lidar2prev_lidar_translation'] = tmp_lidar2prev_lidar_translation
                 metas_map[i]['tmp_lidar2prev_lidar_angle'] = tmp_lidar2prev_lidar_angle
             else:
                 metas_map[i]['prev_bev'] = True
                 tmp_lidar2global = metas_map[i]['lidar2global']
-                tmp_lidar2prev_lidar = np.linalg.inv(prev_lidar2global)@tmp_lidar2global
-                tmp_lidar2prev_lidar_translation = tmp_lidar2prev_lidar[:3,3]
+                tmp_lidar2prev_lidar = np.linalg.inv(prev_lidar2global) @ tmp_lidar2global
+                tmp_lidar2prev_lidar_translation = tmp_lidar2prev_lidar[:3, 3]
                 tmp_lidar2prev_lidar_angle = quaternion_yaw(Quaternion(
-                                                matrix=tmp_lidar2prev_lidar)) / np.pi * 180
+                    matrix=tmp_lidar2prev_lidar)) / np.pi * 180
                 tmp_pos = copy.deepcopy(metas_map[i]['can_bus'][:3])
                 tmp_angle = copy.deepcopy(metas_map[i]['can_bus'][-1])
                 metas_map[i]['can_bus'][:3] -= prev_pos
@@ -1271,7 +1310,7 @@ class CustomNuScenesOfflineLocalMapDataset(CustomNuScenesDataset):
             can_bus=info['can_bus'],
             frame_idx=info['frame_idx'],
             timestamp=info['timestamp'],
-            map_location = info['map_location'],
+            map_location=info['map_location'],
         )
         # lidar to ego transform
         lidar2ego = np.eye(4).astype(np.float32)
@@ -1291,7 +1330,7 @@ class CustomNuScenesOfflineLocalMapDataset(CustomNuScenesDataset):
                 # obtain lidar to image transformation matrix
                 lidar2cam_r = np.linalg.inv(cam_info['sensor2lidar_rotation'])
                 lidar2cam_t = cam_info[
-                    'sensor2lidar_translation'] @ lidar2cam_r.T
+                                  'sensor2lidar_translation'] @ lidar2cam_r.T
                 lidar2cam_rt = np.eye(4)
                 lidar2cam_rt[:3, :3] = lidar2cam_r.T
                 lidar2cam_rt[3, :3] = -lidar2cam_t
@@ -1356,12 +1395,11 @@ class CustomNuScenesOfflineLocalMapDataset(CustomNuScenesDataset):
         can_bus[-2] = patch_angle / 180 * np.pi
         can_bus[-1] = patch_angle
 
-
         lidar2ego = np.eye(4)
-        lidar2ego[:3,:3] = Quaternion(input_dict['lidar2ego_rotation']).rotation_matrix
+        lidar2ego[:3, :3] = Quaternion(input_dict['lidar2ego_rotation']).rotation_matrix
         lidar2ego[:3, 3] = input_dict['lidar2ego_translation']
         ego2global = np.eye(4)
-        ego2global[:3,:3] = Quaternion(input_dict['ego2global_rotation']).rotation_matrix
+        ego2global[:3, :3] = Quaternion(input_dict['ego2global_rotation']).rotation_matrix
         ego2global[:3, 3] = input_dict['ego2global_translation']
         lidar2global = ego2global @ lidar2ego
         input_dict['lidar2global'] = lidar2global
@@ -1397,6 +1435,7 @@ class CustomNuScenesOfflineLocalMapDataset(CustomNuScenesDataset):
                 idx = self._rand_another(idx)
                 continue
             return data
+
     def _format_gt(self):
         gt_annos = []
         print('Start to convert gt map format...')
@@ -1425,7 +1464,7 @@ class CustomNuScenesOfflineLocalMapDataset(CustomNuScenesDataset):
                         type=gt_label,
                     )
                     gt_vec_list.append(anno)
-                gt_anno['vectors']=gt_vec_list
+                gt_anno['vectors'] = gt_vec_list
                 gt_annos.append(gt_anno)
 
                 prog_bar.update()
@@ -1459,7 +1498,19 @@ class CustomNuScenesOfflineLocalMapDataset(CustomNuScenesDataset):
             vecs = output_to_vecs(det)
             sample_token = self.data_infos[sample_id]['token']
             pred_anno['sample_token'] = sample_token
-            pred_vec_list=[]
+            l2e_t = np.array(self.data_infos[sample_id]['lidar2ego_translation'])
+            l2e_r = Quaternion(self.data_infos[sample_id]['lidar2ego_rotation']).rotation_matrix
+            e2g_t = np.array(self.data_infos[sample_id]['ego2global_translation'])
+            e2g_r = Quaternion(self.data_infos[sample_id]['ego2global_rotation']).rotation_matrix
+
+            l2g_r = e2g_r @ l2e_r
+            l2g_t = l2e_t @ e2g_r.T + e2g_t
+            pred_anno['lidar2global_translation'] = l2g_t
+            pred_anno['lidar2global_rotation'] = l2g_r
+            pred_anno['timestamp'] = self.data_infos[sample_id]['timestamp']
+            pred_anno['scene_token'] = self.data_infos[sample_id]['scene_token']
+            pred_anno['map_location'] = self.data_infos[sample_id]['map_location']
+            pred_vec_list = []
             for i, vec in enumerate(vecs):
                 name = mapped_class_names[vec['label']]
                 anno = dict(
@@ -1511,7 +1562,8 @@ class CustomNuScenesOfflineLocalMapDataset(CustomNuScenesDataset):
             vector_num_list[i] = []
         for vec in gt_vectors:
             if vector['pts_num'] >= 2:
-                vector_num_list[vector['type']].append((LineString(vector['pts'][:vector['pts_num']]), vector.get('confidence_level', 1)))
+                vector_num_list[vector['type']].append(
+                    (LineString(vector['pts'][:vector['pts_num']]), vector.get('confidence_level', 1)))
         return gt_vectors
 
     def _evaluate_single(self,
@@ -1536,12 +1588,12 @@ class CustomNuScenesOfflineLocalMapDataset(CustomNuScenesDataset):
         from projects.mmdet3d_plugin.datasets.map_utils.mean_ap import format_res_gt_by_classes
         result_path = osp.abspath(result_path)
         detail = dict()
-        
+
         print('Formating results & gts by classes')
-        with open(result_path,'r') as f:
+        with open(result_path, 'r') as f:
             pred_results = json.load(f)
         gen_results = pred_results['results']
-        with open(self.map_ann_file,'r') as ann_f:
+        with open(self.map_ann_file, 'r') as ann_f:
             gt_anns = json.load(ann_f)
         annotations = gt_anns['GTs']
         cls_gens, cls_gts = format_res_gt_by_classes(result_path,
@@ -1559,46 +1611,45 @@ class CustomNuScenesOfflineLocalMapDataset(CustomNuScenesDataset):
                 raise KeyError(f'metric {metric} is not supported')
 
         for metric in metrics:
-            print('-*'*10+f'use metric:{metric}'+'-*'*10)
+            print('-*' * 10 + f'use metric:{metric}' + '-*' * 10)
 
             if metric == 'chamfer':
-                thresholds = [0.5,1.0,1.5]
+                thresholds = [0.5, 1.0, 1.5]
             elif metric == 'iou':
-                thresholds= np.linspace(.5, 0.95, int(np.round((0.95 - .5) / .05)) + 1, endpoint=True)
-            cls_aps = np.zeros((len(thresholds),self.NUM_MAPCLASSES))
+                thresholds = np.linspace(.5, 0.95, int(np.round((0.95 - .5) / .05)) + 1, endpoint=True)
+            cls_aps = np.zeros((len(thresholds), self.NUM_MAPCLASSES))
 
             for i, thr in enumerate(thresholds):
-                print('-*'*10+f'threshhold:{thr}'+'-*'*10)
+                print('-*' * 10 + f'threshhold:{thr}' + '-*' * 10)
                 mAP, cls_ap = eval_map(
-                                gen_results,
-                                annotations,
-                                cls_gens,
-                                cls_gts,
-                                threshold=thr,
-                                cls_names=self.MAPCLASSES,
-                                logger=logger,
-                                num_pred_pts_per_instance=self.fixed_num,
-                                pc_range=self.pc_range,
-                                metric=metric)
+                    gen_results,
+                    annotations,
+                    cls_gens,
+                    cls_gts,
+                    threshold=thr,
+                    cls_names=self.MAPCLASSES,
+                    logger=logger,
+                    num_pred_pts_per_instance=self.fixed_num,
+                    pc_range=self.pc_range,
+                    metric=metric)
                 for j in range(self.NUM_MAPCLASSES):
                     cls_aps[i, j] = cls_ap[j]['ap']
 
             for i, name in enumerate(self.MAPCLASSES):
                 print('{}: {}'.format(name, cls_aps.mean(0)[i]))
-                detail['NuscMap_{}/{}_AP'.format(metric,name)] =  cls_aps.mean(0)[i]
+                detail['NuscMap_{}/{}_AP'.format(metric, name)] = cls_aps.mean(0)[i]
             print('map: {}'.format(cls_aps.mean(0).mean()))
             detail['NuscMap_{}/mAP'.format(metric)] = cls_aps.mean(0).mean()
 
             for i, name in enumerate(self.MAPCLASSES):
                 for j, thr in enumerate(thresholds):
                     if metric == 'chamfer':
-                        detail['NuscMap_{}/{}_AP_thr_{}'.format(metric,name,thr)]=cls_aps[j][i]
+                        detail['NuscMap_{}/{}_AP_thr_{}'.format(metric, name, thr)] = cls_aps[j][i]
                     elif metric == 'iou':
                         if thr == 0.5 or thr == 0.75:
-                            detail['NuscMap_{}/{}_AP_thr_{}'.format(metric,name,thr)]=cls_aps[j][i]
+                            detail['NuscMap_{}/{}_AP_thr_{}'.format(metric, name, thr)] = cls_aps[j][i]
 
         return detail
-
 
     def evaluate(self,
                  results,
@@ -1657,7 +1708,7 @@ def output_to_vecs(detection):
     vec_list = []
     for i in range(box3d.shape[0]):
         vec = dict(
-            bbox = box3d[i], # xyxy
+            bbox=box3d[i],  # xyxy
             label=labels[i],
             score=scores[i],
             pts=pts[i],
@@ -1665,13 +1716,14 @@ def output_to_vecs(detection):
         vec_list.append(vec)
     return vec_list
 
-def sample_pts_from_line(line, 
+
+def sample_pts_from_line(line,
                          fixed_num=-1,
                          sample_dist=1,
                          normalize=False,
                          patch_size=None,
                          padding=False,
-                         num_samples=250,):
+                         num_samples=250, ):
     if fixed_num < 0:
         distances = np.arange(0, line.length, sample_dist)
         sampled_points = np.array([list(line.interpolate(distance).coords) for distance in distances]).reshape(-1, 2)

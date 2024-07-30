@@ -282,7 +282,8 @@ def _fill_trainval_infos2(nusc,
             if len(frame) - 2 == len(sensors) and lidar_time[0] - last_time > duration:
                 sensor_tokens.append(frame)
                 last_time = lidar_time[0]
-
+        # if len(sensor_tokens) < 35:
+        #     print("scene {} has {} frames".format(scene_token, len(sensor_tokens)))
         all_frames.extend(sensor_tokens)
 
     train_nusc_infos = []
@@ -303,7 +304,7 @@ def _fill_trainval_infos2(nusc,
         ##
         info = {
             'lidar_path': lidar_path,
-            'token': None,
+            'token': lidar_token,
             'prev': None,
             'next': None,
             'can_bus': can_bus,
@@ -353,6 +354,16 @@ def _fill_trainval_infos2(nusc,
         train_nusc_infos = sorted(train_nusc_infos, key=lambda x: x['timestamp'])
     if len(val_nusc_infos) > 0:
         val_nusc_infos = sorted(val_nusc_infos, key=lambda x: x['timestamp'])
+
+    # all_scene_tokens = set([info["scene_token"] for info in train_nusc_infos])
+    # all_tokens = set([info["token"] for info in train_nusc_infos])
+    # print("train_nusc_infos tokens: %d" % len(all_scene_tokens), "Sample tokens: %d" % len(all_tokens),
+    #       "Total: %d" % len(train_nusc_infos))
+    #
+    # all_scene_tokens = set([info["scene_token"] for info in val_nusc_infos])
+    # all_tokens = set([info["token"] for info in val_nusc_infos])
+    # print("val_nusc_infos tokens: %d" % len(all_scene_tokens), "Sample tokens: %d" % len(all_tokens),
+    #       "Total: %d" % len(val_nusc_infos))
 
     return train_nusc_infos, val_nusc_infos
 
@@ -1059,7 +1070,7 @@ if __name__ == '__main__':
         out_dir=args.out_dir,
         max_sweeps=args.max_sweeps)
 
-    train_info_file = osp.join(args.out_dir, '{}_map_infos_temporal_test.pkl'.format(args.extra_tag))
+    train_info_file = osp.join(args.out_dir, '{}_map_infos_temporal_train.pkl'.format(args.extra_tag))
     val_info_file = osp.join(args.out_dir, '{}_map_infos_temporal_val.pkl'.format(args.extra_tag))
     test_info_file = osp.join(args.out_dir, '{}_map_infos_temporal_test.pkl'.format(args.extra_tag))
     train_infos = mmcv.load(train_info_file)['infos']
