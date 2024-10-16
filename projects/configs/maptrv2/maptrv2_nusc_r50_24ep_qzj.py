@@ -206,6 +206,7 @@ model = dict(
 
 dataset_type = 'CustomNuScenesOfflineLocalMapDataset'
 data_root = '/home/qzj/datasets/nuscenes/'
+pkls_root = '/home/qzj/datasets/nuscenes/custom/pkls/'
 file_client_args = dict(backend='disk')
 
 train_pipeline = [
@@ -252,7 +253,7 @@ data = dict(
     train=dict(
         type=dataset_type,
         data_root=data_root,
-        ann_file='/media/qzj/Document/datasets/nuscenes/pkls2/nuscenes_map_infos_temporal_train.pkl',
+        ann_file=f'{pkls_root}/nuscenes_map_infos_temporal_train.pkl',
         pipeline=train_pipeline,
         classes=class_names,
         modality=input_modality,
@@ -272,7 +273,7 @@ data = dict(
     val=dict(
         type=dataset_type,
         data_root=data_root,
-        ann_file='/media/qzj/Document/datasets/nuscenes/pkls2/nuscenes_map_infos_temporal_val.pkl',
+        ann_file=f'{pkls_root}/nuscenes_map_infos_temporal_val.pkl',
         map_ann_file=data_root + 'nuscenes_map_anns_val.json',
         pipeline=test_pipeline, bev_size=(bev_h_, bev_w_),
         pc_range=point_cloud_range,
@@ -284,8 +285,8 @@ data = dict(
     test=dict(
         type=dataset_type,
         data_root=data_root,
-        ann_file=data_root + 'pkls2/nuscenes_map_infos_temporal_all.pkl',
-        map_ann_file=data_root + 'pkls2/nuscenes_map_anns_test.json',
+        ann_file=f'{pkls_root}/nuscenes_map_infos_temporal_all.pkl',
+        map_ann_file=f'{pkls_root}/nuscenes_map_anns_test.json',
         pipeline=test_pipeline,
         bev_size=(bev_h_, bev_w_),
         pc_range=point_cloud_range,
