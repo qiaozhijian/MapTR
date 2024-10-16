@@ -1,5 +1,5 @@
-DATA_ROOT=/home/qzj/datasets/nuscenes
-python tools/maptrv2/custom_nusc_map_converter.py --root-path /home/qzj/datasets/nuscenes --out-dir /home/qzj/datasets/nuscenes/custom/pkls/ --extra-tag nuscenes --version v1.0 --canbus /home/qzj/datasets/nuscenes
+#DATA_ROOT=/home/qzj/datasets/nuscenes
+#python tools/maptrv2/custom_nusc_map_converter.py --root-path /home/qzj/datasets/nuscenes --out-dir /home/qzj/datasets/nuscenes/custom/pkls/ --extra-tag nuscenes --version v1.0 --canbus /home/qzj/datasets/nuscenes
 
 #python tools/maptrv2/custom_av2_map_converter.py --data-root /home/qzj/datasets/argoverse2/sensor/
 
