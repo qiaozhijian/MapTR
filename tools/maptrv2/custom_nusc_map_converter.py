@@ -1051,7 +1051,7 @@ parser.add_argument(
 parser.add_argument('--extra-tag', type=str, default='nuscenes')
 parser.add_argument(
     '--workers', type=int, default=4, help='number of threads to be used')
-parser.add_argument('--keyframe', type=bool, default=False, action='store_true')
+parser.add_argument('--keyframe', default=False, action='store_true')
 args = parser.parse_args()
 
 if __name__ == '__main__':
