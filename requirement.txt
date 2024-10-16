@@ -20,8 +20,9 @@ timm
 trimesh==2.35.39
 numba==0.48.0
 tensorboard
-plyfile
+plyfile==1.0.3
 lyft_dataset_sdk
+cython==0.29.26
 
 # cd mmdetection3d && python setup.py develop
 # cd ../projects/mmdet3d_plugin/maptr/modules/ops/geometric_kernel_attn && python setup.py build install
