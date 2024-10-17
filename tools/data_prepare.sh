@@ -9,7 +9,7 @@ export CUDA_VISIBLE_DEVICES=3
 export ROOT_DIR=$PWD
 export PYTHONPATH=$ROOT_DIR:$PYTHONPATH
 export GPUS=1
-export PORT=${PORT:-29504}
+export PORT=${PORT:-3096}
 
 export CONFIG=/home/qzj/code/MapTR/projects/configs/maptrv2/maptrv2_nusc_r50_24ep_qzj.py
 export CHECKPOINT=/home/qzj/code/MapTR/ckpts/maptrv2_nusc_r50_24e.pth
