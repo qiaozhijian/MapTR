@@ -206,7 +206,7 @@ model = dict(
 
 dataset_type = 'CustomNuScenesOfflineLocalMapDataset'
 data_root = '/home/qzj/datasets/nuscenes/'
-pkls_root = '/home/qzj/datasets/nuscenes/custom/pkls/'
+pkls_root = '/home/qzj/datasets/nuscenes/custom/maptrv2_all_sync/'
 file_client_args = dict(backend='disk')
 
 train_pipeline = [
@@ -286,7 +286,7 @@ data = dict(
         type=dataset_type,
         data_root=data_root,
         ann_file=f'{pkls_root}/nuscenes_map_infos_temporal_all.pkl',
-        map_ann_file=f'{pkls_root}/nuscenes_map_anns_test.json',
+        map_ann_file=f'{pkls_root}/nuscenes_map_anns_all_sync.json',
         pipeline=test_pipeline,
         bev_size=(bev_h_, bev_w_),
         pc_range=point_cloud_range,

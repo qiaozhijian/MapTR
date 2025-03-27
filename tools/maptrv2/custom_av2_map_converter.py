@@ -29,52 +29,57 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-CAM_NAMES = ['ring_front_center', 'ring_front_right', 'ring_front_left',
-             'ring_rear_right', 'ring_rear_left', 'ring_side_right', 'ring_side_left',
-             # 'stereo_front_left', 'stereo_front_right',
-             ]
+CAM_NAMES = [
+    "ring_front_center",
+    "ring_front_right",
+    "ring_front_left",
+    "ring_rear_right",
+    "ring_rear_left",
+    "ring_side_right",
+    "ring_side_left",
+    # 'stereo_front_left', 'stereo_front_right',
+]
 # some fail logs as stated in av2
 # https://github.com/argoverse/av2-api/blob/05b7b661b7373adb5115cf13378d344d2ee43906/src/av2/map/README.md#training-online-map-inference-models
 FAIL_LOGS = [
     # official
-    '75e8adad-50a6-3245-8726-5e612db3d165',
-    '54bc6dbc-ebfb-3fba-b5b3-57f88b4b79ca',
-    'af170aac-8465-3d7b-82c5-64147e94af7d',
-    '6e106cf8-f6dd-38f6-89c8-9be7a71e7275',
+    "75e8adad-50a6-3245-8726-5e612db3d165",
+    "54bc6dbc-ebfb-3fba-b5b3-57f88b4b79ca",
+    "af170aac-8465-3d7b-82c5-64147e94af7d",
+    "6e106cf8-f6dd-38f6-89c8-9be7a71e7275",
     # observed
-    '01bb304d-7bd8-35f8-bbef-7086b688e35e',
-    '453e5558-6363-38e3-bf9b-42b5ba0a6f1d'
+    "01bb304d-7bd8-35f8-bbef-7086b688e35e",
+    "453e5558-6363-38e3-bf9b-42b5ba0a6f1d",
 ]
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Data converter arg parser')
+    parser = argparse.ArgumentParser(description="Data converter arg parser")
     parser.add_argument(
-        '--data-root',
-        type=str,
-        help='specify the root path of dataset')
+        "--data-root", type=str, help="specify the root path of dataset"
+    )
     parser.add_argument(
-        '--pc-range',
+        "--pc-range",
         type=float,
-        nargs='+',
+        nargs="+",
         default=[-30.0, -15.0, -5.0, 30.0, 15.0, 3.0],
-        help='specify the perception point cloud range')
+        help="specify the perception point cloud range",
+    )
     parser.add_argument(
-        '--nproc',
-        type=int,
-        default=64,
-        required=False,
-        help='workers to process data')
+        "--nproc", type=int, default=64, required=False, help="workers to process data"
+    )
     args = parser.parse_args()
     return args
 
 
-def create_av2_infos_mp(root_path,
-                        info_prefix,
-                        dest_path=None,
-                        split='train',
-                        num_multithread=64,
-                        pc_range=[-30.0, -15.0, -5.0, 30.0, 15.0, 3.0]):
+def create_av2_infos_mp(
+    root_path,
+    info_prefix,
+    dest_path=None,
+    split="train",
+    num_multithread=64,
+    pc_range=[-30.0, -15.0, -5.0, 30.0, 15.0, 3.0],
+):
     """Create info file of av2 dataset.
 
     Given the raw data, generate its related info file in pkl format.
@@ -97,19 +102,21 @@ def create_av2_infos_mp(root_path,
         if l in log_ids:
             log_ids.remove(l)
 
-    print('collecting samples...')
+    print("collecting samples...")
     start_time = time.time()
-    print('num cpu:', multiprocessing.cpu_count())
-    print(f'using {num_multithread} threads')
+    print("num cpu:", multiprocessing.cpu_count())
+    print(f"using {num_multithread} threads")
 
     # to supress logging from av2.utils.synchronization_database
-    sdb_logger = logging.getLogger('av2.utils.synchronization_database')
+    sdb_logger = logging.getLogger("av2.utils.synchronization_database")
     prev_level = sdb_logger.level
     sdb_logger.setLevel(logging.CRITICAL)
 
     # FIXME: need to check the order
     pool = Pool(num_multithread)
-    fn = partial(get_data_from_logid, loader=loader, data_root=root_path, pc_range=pc_range)
+    fn = partial(
+        get_data_from_logid, loader=loader, data_root=root_path, pc_range=pc_range
+    )
     rt = pool.map_async(fn, log_ids)
     pool.close()
     pool.join()
@@ -120,20 +127,19 @@ def create_av2_infos_mp(root_path,
     sample_idx = 0
     for _samples, _discarded in results:
         for i in range(len(_samples)):
-            _samples[i]['sample_idx'] = sample_idx
+            _samples[i]["sample_idx"] = sample_idx
             sample_idx += 1
         samples += _samples
         discarded += _discarded
 
     sdb_logger.setLevel(prev_level)
-    print(f'{len(samples)} available samples, {discarded} samples discarded')
+    print(f"{len(samples)} available samples, {discarded} samples discarded")
 
-    print('collected in {}s'.format(time.time() - start_time))
+    print("collected in {}s".format(time.time() - start_time))
     infos = dict(samples=samples)
 
-    info_path = osp.join(dest_path,
-                         '{}_map_infos_{}.pkl'.format(info_prefix, split))
-    print(f'saving results to {info_path}')
+    info_path = osp.join(dest_path, "{}_map_infos_{}.pkl".format(info_prefix, split))
+    print(f"saving results to {info_path}")
     mmcv.dump(infos, info_path)
     # mmcv.dump(samples, info_path)
 
@@ -141,9 +147,13 @@ def create_av2_infos_mp(root_path,
 def get_divider(avm):
     divider_list = []
     for ls in avm.get_scenario_lane_segments():
-        for bound_type, bound_city in zip([ls.left_mark_type, ls.right_mark_type],
-                                          [ls.left_lane_boundary, ls.right_lane_boundary]):
-            if bound_type not in [LaneMarkType.NONE, ]:
+        for bound_type, bound_city in zip(
+            [ls.left_mark_type, ls.right_mark_type],
+            [ls.left_lane_boundary, ls.right_lane_boundary],
+        ):
+            if bound_type not in [
+                LaneMarkType.NONE,
+            ]:
                 divider_list.append(bound_city.xyz)
     return divider_list
 
@@ -162,17 +172,21 @@ def get_ped(avm):
     return ped_list
 
 
-def get_data_from_logid(log_id,
-                        loader: AV2SensorDataLoader,
-                        data_root,
-                        pc_range=[-30.0, -15.0, -5.0, 30.0, 15.0, 3.0]):
+def get_data_from_logid(
+    log_id,
+    loader: AV2SensorDataLoader,
+    data_root,
+    pc_range=[-30.0, -15.0, -5.0, 30.0, 15.0, 3.0],
+):
     samples = []
     discarded = 0
 
     log_map_dirpath = Path(osp.join(data_root, log_id, "map"))
     vector_data_fnames = sorted(log_map_dirpath.glob("log_map_archive_*.json"))
     if not len(vector_data_fnames) == 1:
-        raise RuntimeError(f"JSON file containing vector map data is missing (searched in {log_map_dirpath})")
+        raise RuntimeError(
+            f"JSON file containing vector map data is missing (searched in {log_map_dirpath})"
+        )
     vector_data_fname = vector_data_fnames[0]
     vector_data_json_path = vector_data_fname
     avm = ArgoverseStaticMap.from_json(vector_data_json_path)
@@ -181,9 +195,9 @@ def get_data_from_logid(log_id,
     cam_timestamps = loader._sdb.per_log_lidar_timestamps_index[log_id]
 
     for ts in cam_timestamps:
-        cam_ring_fpath = [loader.get_closest_img_fpath(
-            log_id, cam_name, ts
-        ) for cam_name in CAM_NAMES]
+        cam_ring_fpath = [
+            loader.get_closest_img_fpath(log_id, cam_name, ts) for cam_name in CAM_NAMES
+        ]
         lidar_fpath = loader.get_closest_lidar_fpath(log_id, ts)
 
         # If bad sensor synchronization, discard the sample
@@ -215,7 +229,8 @@ def get_data_from_logid(log_id,
             # map_fpath=map_fname,
             timestamp=str(ts),
             log_id=log_id,
-            token=str(log_id + '_' + str(ts)))
+            token=str(log_id + "_" + str(ts)),
+        )
 
         map_anno = extract_local_map(avm, e2g_translation, e2g_rotation, pc_range)
         info["annotation"] = map_anno
@@ -246,11 +261,18 @@ def extract_local_map(avm, e2g_translation, e2g_rotation, pc_range):
         boundary=[],
         centerline=[],
     )
-    map_anno['ped_crossing'] = extract_local_ped_crossing(avm, ego_SE3_city, patch_box, patch_angle, patch_size)
-    map_anno['boundary'] = extract_local_boundary(avm, ego_SE3_city, patch_box, patch_angle, patch_size)
-    map_anno['centerline'] = extract_local_centerline(nearby_centerlines, ego_SE3_city, patch_box, patch_angle,
-                                                      patch_size)
-    map_anno['divider'] = extract_local_divider(nearby_dividers, ego_SE3_city, patch_box, patch_angle, patch_size)
+    map_anno["ped_crossing"] = extract_local_ped_crossing(
+        avm, ego_SE3_city, patch_box, patch_angle, patch_size
+    )
+    map_anno["boundary"] = extract_local_boundary(
+        avm, ego_SE3_city, patch_box, patch_angle, patch_size
+    )
+    map_anno["centerline"] = extract_local_centerline(
+        nearby_centerlines, ego_SE3_city, patch_box, patch_angle, patch_size
+    )
+    map_anno["divider"] = extract_local_divider(
+        nearby_dividers, ego_SE3_city, patch_box, patch_angle, patch_size
+    )
 
     return map_anno
 
@@ -264,42 +286,44 @@ def generate_nearby_centerlines(avm, patch_box, patch_angle):
             ls=ls,
             polygon=Polygon(ls.polygon_boundary),
             predecessors=ls.predecessors,
-            successors=ls.successors
+            successors=ls.successors,
         )
     ls_dict = dict()
     for key, value in scene_ls_dict.items():
-        polygon = value['polygon']
+        polygon = value["polygon"]
         if polygon.is_valid:
             new_polygon = polygon.intersection(patch)
             if not new_polygon.is_empty:
                 ls_dict[key] = value
 
     for key, value in ls_dict.items():
-        value['centerline'] = Polyline.from_array(avm.get_lane_segment_centerline(key).round(3))
+        value["centerline"] = Polyline.from_array(
+            avm.get_lane_segment_centerline(key).round(3)
+        )
     pts_G = nx.DiGraph()
     junction_pts_list = []
     tmp = ls_dict
     for key, value in tmp.items():
-        centerline_geom = LineString(value['centerline'].xyz)
+        centerline_geom = LineString(value["centerline"].xyz)
         centerline_pts = np.array(centerline_geom.coords).round(3)
         start_pt = centerline_pts[0]
         end_pt = centerline_pts[-1]
         for idx, pts in enumerate(centerline_pts[:-1]):
             pts_G.add_edge(tuple(centerline_pts[idx]), tuple(centerline_pts[idx + 1]))
         valid_incoming_num = 0
-        for idx, pred in enumerate(value['predecessors']):
+        for idx, pred in enumerate(value["predecessors"]):
             if pred in tmp.keys():
                 valid_incoming_num += 1
-                pred_geom = LineString(tmp[pred]['centerline'].xyz)
+                pred_geom = LineString(tmp[pred]["centerline"].xyz)
                 pred_pt = np.array(pred_geom.coords).round(3)[-1]
                 pts_G.add_edge(tuple(pred_pt), tuple(start_pt))
         if valid_incoming_num > 1:
             junction_pts_list.append(tuple(start_pt))
         valid_outgoing_num = 0
-        for idx, succ in enumerate(value['successors']):
+        for idx, succ in enumerate(value["successors"]):
             if succ in tmp.keys():
                 valid_outgoing_num += 1
-                succ_geom = LineString(tmp[succ]['centerline'].xyz)
+                succ_geom = LineString(tmp[succ]["centerline"].xyz)
                 succ_pt = np.array(succ_geom.coords).round(3)[0]
                 pts_G.add_edge(tuple(end_pt), tuple(succ_pt))
         if valid_outgoing_num > 1:
@@ -327,26 +351,28 @@ def generate_nearby_dividers(avm, patch_box, patch_angle):
         junction_pts_list = []
         tmp = ls_dict
         for key, value in tmp.items():
-            centerline_geom = LineString(value['centerline'].xyz)
+            centerline_geom = LineString(value["centerline"].xyz)
             centerline_pts = np.array(centerline_geom.coords).round(3)
             start_pt = centerline_pts[0]
             end_pt = centerline_pts[-1]
             for idx, pts in enumerate(centerline_pts[:-1]):
-                pts_G.add_edge(tuple(centerline_pts[idx]), tuple(centerline_pts[idx + 1]))
+                pts_G.add_edge(
+                    tuple(centerline_pts[idx]), tuple(centerline_pts[idx + 1])
+                )
             valid_incoming_num = 0
-            for idx, pred in enumerate(value['predecessors']):
+            for idx, pred in enumerate(value["predecessors"]):
                 if pred in tmp.keys():
                     valid_incoming_num += 1
-                    pred_geom = LineString(tmp[pred]['centerline'].xyz)
+                    pred_geom = LineString(tmp[pred]["centerline"].xyz)
                     pred_pt = np.array(pred_geom.coords).round(3)[-1]
                     pts_G.add_edge(tuple(pred_pt), tuple(start_pt))
             if valid_incoming_num > 1:
                 junction_pts_list.append(tuple(start_pt))
             valid_outgoing_num = 0
-            for idx, succ in enumerate(value['successors']):
+            for idx, succ in enumerate(value["successors"]):
                 if succ in tmp.keys():
                     valid_outgoing_num += 1
-                    succ_geom = LineString(tmp[succ]['centerline'].xyz)
+                    succ_geom = LineString(tmp[succ]["centerline"].xyz)
                     succ_pt = np.array(succ_geom.coords).round(3)[0]
                     pts_G.add_edge(tuple(end_pt), tuple(succ_pt))
             if valid_outgoing_num > 1:
@@ -375,16 +401,16 @@ def generate_nearby_dividers(avm, patch_box, patch_angle):
             ls=ls,
             polygon=Polygon(ls.polygon_boundary),
             predecessors=ls.predecessors,
-            successors=ls.successors
+            successors=ls.successors,
         )
     #     nearby_ls_ids = []
     nearby_ls_dict = dict()
     for key, value in scene_ls_dict.items():
-        polygon = value['polygon']
+        polygon = value["polygon"]
         if polygon.is_valid:
             new_polygon = polygon.intersection(patch)
             if not new_polygon.is_empty:
-                nearby_ls_dict[key] = value['ls']
+                nearby_ls_dict[key] = value["ls"]
 
     ls_dict = nearby_ls_dict
     divider_ls_dict = dict()
@@ -410,18 +436,18 @@ def generate_nearby_dividers(avm, patch_box, patch_angle):
                 right_neighbor_id=value.right_neighbor_id,
             )
     for key, value in left_lane_dict.items():
-        if value['left_neighbor_id'] in right_lane_dict.keys():
-            del right_lane_dict[value['left_neighbor_id']]
+        if value["left_neighbor_id"] in right_lane_dict.keys():
+            del right_lane_dict[value["left_neighbor_id"]]
 
     for key, value in right_lane_dict.items():
-        if value['right_neighbor_id'] in left_lane_dict.keys():
-            del left_lane_dict[value['right_neighbor_id']]
+        if value["right_neighbor_id"] in left_lane_dict.keys():
+            del left_lane_dict[value["right_neighbor_id"]]
 
     for key, value in left_lane_dict.items():
-        value['centerline'] = value['polyline']
+        value["centerline"] = value["polyline"]
 
     for key, value in right_lane_dict.items():
-        value['centerline'] = value['polyline']
+        value["centerline"] = value["polyline"]
 
     left_paths = get_path(left_lane_dict)
     right_paths = get_path(right_lane_dict)
@@ -452,7 +478,9 @@ def proc_line(line, ego_SE3_city):
     return line
 
 
-def extract_local_centerline(nearby_centerlines, ego_SE3_city, patch_box, patch_angle, patch_size):
+def extract_local_centerline(
+    nearby_centerlines, ego_SE3_city, patch_box, patch_angle, patch_size
+):
     patch = NuScenesMapExplorer.get_patch_coord(patch_box, patch_angle)
     line_list = []
     for line in nearby_centerlines:
@@ -460,7 +488,7 @@ def extract_local_centerline(nearby_centerlines, ego_SE3_city, patch_box, patch_
             continue
         new_line = line.intersection(patch)
         if not new_line.is_empty:
-            if new_line.geom_type == 'MultiLineString':
+            if new_line.geom_type == "MultiLineString":
                 for single_line in new_line.geoms:
                     if single_line.is_empty:
                         continue
@@ -472,8 +500,10 @@ def extract_local_centerline(nearby_centerlines, ego_SE3_city, patch_box, patch_
 
     centerlines = line_list
 
-    poly_centerlines = [line.buffer(1,
-                                    cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre) for line in centerlines]
+    poly_centerlines = [
+        line.buffer(1, cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre)
+        for line in centerlines
+    ]
     index_by_id = dict((id(pt), i) for i, pt in enumerate(poly_centerlines))
     tree = STRtree(poly_centerlines)
     final_pgeom = []
@@ -501,9 +531,10 @@ def merge_dividers(divider_list):
     if len(divider_list) < 2:
         return divider_list
     divider_list_shapely = [LineString(divider) for divider in divider_list]
-    poly_dividers = [divider.buffer(1,
-                                    cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre) for divider in
-                     divider_list_shapely]
+    poly_dividers = [
+        divider.buffer(1, cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre)
+        for divider in divider_list_shapely
+    ]
     tree = STRtree(poly_dividers)
     index_by_id = dict((id(pt), i) for i, pt in enumerate(poly_dividers))
     final_pgeom = []
@@ -534,29 +565,37 @@ def merge_dividers(divider_list):
             pline_se_pts = final_pgeom[-1][[0, -1], :2]  # only on xy
             o_se_pts = divider_list[o_idx][[0, -1], :2]  # only on xy
             four_se_pts = np.concatenate([pline_se_pts, o_se_pts], axis=0)
-            dist_mat = distance.cdist(four_se_pts, four_se_pts, 'euclidean')
+            dist_mat = distance.cdist(four_se_pts, four_se_pts, "euclidean")
             for j in range(4):
                 dist_mat[j, j] = 100
             index = np.where(dist_mat == 0)[0].tolist()
             if index == [0, 2]:
                 # e oline s s pline e
                 # +-------+ +-------+
-                final_pgeom[-1] = np.concatenate([np.flip(divider_list[o_idx], axis=0)[:-1], final_pgeom[-1]])
+                final_pgeom[-1] = np.concatenate(
+                    [np.flip(divider_list[o_idx], axis=0)[:-1], final_pgeom[-1]]
+                )
                 remain_idx.pop(remain_idx.index(o_idx))
             elif index == [1, 2]:
                 # s pline e s oline e
                 # +-------+ +-------+
-                final_pgeom[-1] = np.concatenate([final_pgeom[-1][:-1], divider_list[o_idx]])
+                final_pgeom[-1] = np.concatenate(
+                    [final_pgeom[-1][:-1], divider_list[o_idx]]
+                )
                 remain_idx.pop(remain_idx.index(o_idx))
             elif index == [0, 3]:
                 # s oline e s pline e
                 # +-------+ +-------+
-                final_pgeom[-1] = np.concatenate([divider_list[o_idx][:-1], final_pgeom[-1]])
+                final_pgeom[-1] = np.concatenate(
+                    [divider_list[o_idx][:-1], final_pgeom[-1]]
+                )
                 remain_idx.pop(remain_idx.index(o_idx))
             elif index == [1, 3]:
                 # s pline e e oline s
                 # +-------+ +-------+
-                final_pgeom[-1] = np.concatenate([final_pgeom[-1][:-1], np.flip(divider_list[o_idx], axis=0)])
+                final_pgeom[-1] = np.concatenate(
+                    [final_pgeom[-1][:-1], np.flip(divider_list[o_idx], axis=0)]
+                )
                 remain_idx.pop(remain_idx.index(o_idx))
             elif len(index) > 2:
                 remain_idx.pop(remain_idx.index(o_idx))
@@ -564,7 +603,9 @@ def merge_dividers(divider_list):
     return final_pgeom
 
 
-def extract_local_divider(nearby_dividers, ego_SE3_city, patch_box, patch_angle, patch_size):
+def extract_local_divider(
+    nearby_dividers, ego_SE3_city, patch_box, patch_angle, patch_size
+):
     patch = NuScenesMapExplorer.get_patch_coord(patch_box, patch_angle)
     line_list = []
     for line in nearby_dividers:
@@ -572,7 +613,7 @@ def extract_local_divider(nearby_dividers, ego_SE3_city, patch_box, patch_angle,
             continue
         new_line = line.intersection(patch)
         if not new_line.is_empty:
-            if new_line.geom_type == 'MultiLineString':
+            if new_line.geom_type == "MultiLineString":
                 for single_line in new_line.geoms:
                     if single_line.is_empty:
                         continue
@@ -584,8 +625,10 @@ def extract_local_divider(nearby_dividers, ego_SE3_city, patch_box, patch_angle,
 
     centerlines = line_list
 
-    poly_centerlines = [line.buffer(1,
-                                    cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre) for line in centerlines]
+    poly_centerlines = [
+        line.buffer(1, cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre)
+        for line in centerlines
+    ]
     index_by_id = dict((id(pt), i) for i, pt in enumerate(poly_centerlines))
     tree = STRtree(poly_centerlines)
     final_pgeom = []
@@ -623,13 +666,13 @@ def extract_local_boundary(avm, ego_SE3_city, patch_box, patch_angle, patch_size
         if polygon.is_valid:
             new_polygon = polygon.intersection(patch)
             if not new_polygon.is_empty:
-                if new_polygon.geom_type is 'Polygon':
+                if new_polygon.geom_type is "Polygon":
                     if not new_polygon.is_valid:
                         continue
                     new_polygon = proc_polygon(new_polygon, ego_SE3_city)
                     if not new_polygon.is_valid:
                         continue
-                elif new_polygon.geom_type is 'MultiPolygon':
+                elif new_polygon.geom_type is "MultiPolygon":
                     polygons = []
                     for single_polygon in new_polygon.geoms:
                         if not single_polygon.is_valid or single_polygon.is_empty:
@@ -644,9 +687,9 @@ def extract_local_boundary(avm, ego_SE3_city, patch_box, patch_angle, patch_size
                     if not new_polygon.is_valid:
                         continue
                 else:
-                    raise ValueError('{} is not valid'.format(new_polygon.geom_type))
+                    raise ValueError("{} is not valid".format(new_polygon.geom_type))
 
-                if new_polygon.geom_type is 'Polygon':
+                if new_polygon.geom_type is "Polygon":
                     new_polygon = MultiPolygon([new_polygon])
                 polygon_list.append(new_polygon)
 
@@ -656,7 +699,7 @@ def extract_local_boundary(avm, ego_SE3_city, patch_box, patch_angle, patch_size
     local_patch = box(-max_x + 0.2, -max_y + 0.2, max_x - 0.2, max_y - 0.2)
     exteriors = []
     interiors = []
-    if union_segments.geom_type != 'MultiPolygon':
+    if union_segments.geom_type != "MultiPolygon":
         union_segments = MultiPolygon([union_segments])
     for poly in union_segments.geoms:
         exteriors.append(poly.exterior)
@@ -683,10 +726,10 @@ def extract_local_boundary(avm, ego_SE3_city, patch_box, patch_angle, patch_size
     boundary_lines = []
     for line in results:
         if not line.is_empty:
-            if line.geom_type == 'MultiLineString':
+            if line.geom_type == "MultiLineString":
                 for single_line in line.geoms:
                     boundary_lines.append(np.array(single_line.coords))
-            elif line.geom_type == 'LineString':
+            elif line.geom_type == "LineString":
                 boundary_lines.append(np.array(line.coords))
             else:
                 raise NotImplementedError
@@ -708,13 +751,13 @@ def extract_local_ped_crossing(avm, ego_SE3_city, patch_box, patch_angle, patch_
         if polygon.is_valid:
             new_polygon = polygon.intersection(patch)
             if not new_polygon.is_empty:
-                if new_polygon.geom_type is 'Polygon':
+                if new_polygon.geom_type is "Polygon":
                     if not new_polygon.is_valid:
                         continue
                     new_polygon = proc_polygon(new_polygon, ego_SE3_city)
                     if not new_polygon.is_valid:
                         continue
-                elif new_polygon.geom_type is 'MultiPolygon':
+                elif new_polygon.geom_type is "MultiPolygon":
                     polygons = []
                     for single_polygon in new_polygon.geoms:
                         if not single_polygon.is_valid or single_polygon.is_empty:
@@ -729,9 +772,9 @@ def extract_local_ped_crossing(avm, ego_SE3_city, patch_box, patch_angle, patch_
                     if not new_polygon.is_valid:
                         continue
                 else:
-                    raise ValueError('{} is not valid'.format(new_polygon.geom_type))
+                    raise ValueError("{} is not valid".format(new_polygon.geom_type))
 
-                if new_polygon.geom_type is 'Polygon':
+                if new_polygon.geom_type is "Polygon":
                     new_polygon = MultiPolygon([new_polygon])
                 polygon_list.append(new_polygon)
 
@@ -762,12 +805,11 @@ def extract_local_ped_crossing(avm, ego_SE3_city, patch_box, patch_angle, patch_
             o_v, o_v_norm = get_rec_direction(o)
             cos = pgeom_v.dot(o_v) / (pgeom_v_norm * o_v_norm)
             if 1 - np.abs(cos) < 0.01:  # theta < 8 degrees.
-                final_pgeom[-1] = \
-                    final_pgeom[-1].union(o)  # union parallel ped?
+                final_pgeom[-1] = final_pgeom[-1].union(o)  # union parallel ped?
                 # update
                 remain_idx.pop(remain_idx.index(o_idx))
     for i in range(len(final_pgeom)):
-        if final_pgeom[i].geom_type != 'MultiPolygon':
+        if final_pgeom[i].geom_type != "MultiPolygon":
             final_pgeom[i] = MultiPolygon([final_pgeom[i]])
 
     max_x = patch_size[1] / 2
@@ -783,11 +825,11 @@ def extract_local_ped_crossing(avm, ego_SE3_city, patch_box, patch_angle, patch_
                 ext.coords = list(ext.coords)[::-1]
             lines = ext.intersection(local_patch)
 
-            if lines.type != 'LineString':
+            if lines.type != "LineString":
                 lines = ops.linemerge(lines)
 
             # same instance but not connected.
-            if lines.type != 'LineString':
+            if lines.type != "LineString":
                 ls = []
                 for l in lines.geoms:
                     ls.append(np.array(l.coords))
@@ -818,12 +860,15 @@ def extract_local_ped_crossing(avm, ego_SE3_city, patch_box, patch_angle, patch_
 # collected in 162.96644020080566s
 # saving results to /home/qzj/datasets/argoverse2/sensor/av2_map_infos_test.pkl
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = parse_args()
-    for name in ['val', 'train', 'val', 'test']:
+    for name in ["val", "train", "test"]:
+        dest_path = os.path.join(args.data_root, "custom", "maptrv2")
+        os.makedirs(dest_path, exist_ok=True)
         create_av2_infos_mp(
             root_path=args.data_root,
             split=name,
-            info_prefix='av2',
-            dest_path=args.data_root,
-            pc_range=args.pc_range, )
+            info_prefix="av2",
+            dest_path=dest_path,
+            pc_range=args.pc_range,
+        )
